@@ -1,19 +1,16 @@
-import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { acceptInvite, INVITE, origin, secure, session, switchWorkspace } from "@/lib/auth";
+import { acceptInvite, origin, rememberWorkspace, signedIn } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-// An invite link. Signed in: join now. Signed out: remember it through sign-in.
+// An invite link. Signed out: sign in, then come back here. Signed in: join now.
 export async function GET(_req: Request, ctx: RouteContext<"/join/[token]">) {
   const { token } = await ctx.params;
   const base = await origin();
-  const s = await session();
-  if (!s) {
-    (await cookies()).set(INVITE, token, { httpOnly: true, sameSite: "lax", secure: secure(), path: "/", maxAge: 3600 });
-    return NextResponse.redirect(`${base}/signin?invite=${encodeURIComponent(token)}`);
-  }
-  const ws = await acceptInvite(await db(), s.user, token);
-  if (!ws) return NextResponse.redirect(`${base}/?error=${encodeURIComponent("That invite has expired")}`);
-  await switchWorkspace({ ...s, workspaces: [...s.workspaces, { id: ws, name: "" }] }, ws);
+  // Accept before anything else, so a first sign-in doesn't also make an empty workspace.
+  const user = await signedIn();
+  if (!user) return NextResponse.redirect(`${base}/signin?invite=${encodeURIComponent(token)}`);
+  const ws = await acceptInvite(await db(), user, token);
+  if (!ws) return NextResponse.redirect(`${base}/signin?invite=${encodeURIComponent(token)}&expired=1`);
+  await rememberWorkspace(ws);
   return NextResponse.redirect(`${base}/`);
 }

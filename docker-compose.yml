@@ -1,5 +1,6 @@
 # docker compose up: Postgres plus the app on http://localhost:3000.
-# Sign-in needs a GitHub OAuth app; put GITHUB_ID and GITHUB_SECRET in .env.
+# Put BETTER_AUTH_SECRET, GITHUB_ID and GITHUB_SECRET in .env.
+# GitHub callback: http://localhost:3000/api/auth/callback/github
 services:
   db:
     image: postgres:17-alpine

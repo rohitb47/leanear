@@ -30,7 +30,8 @@ pnpm dev:site   # the site on http://localhost:3001
 ```
 
 No settings needed. Without `DATABASE_URL` the app runs an embedded Postgres in
-`apps/web/.data`, and you sign in locally with a name and email. Production settings are
+`apps/web/.data`, and you sign in with an email and password. Sign-in is
+[Better Auth](https://better-auth.com). Production settings are
 in [apps/web/.env.example](apps/web/.env.example).
 
 Connect Claude Code to your local app: add an agent in Settings, then run the line it
@@ -42,8 +43,8 @@ shows you.
 docker compose up
 ```
 
-Postgres and the app on port 3000. Sign-in needs a GitHub OAuth app (`GITHUB_ID`,
-`GITHUB_SECRET` in `.env`).
+Postgres and the app on port 3000. Put `BETTER_AUTH_SECRET` and a GitHub OAuth app
+(`GITHUB_ID`, `GITHUB_SECRET`) in `.env`.
 
 ## Licence
 

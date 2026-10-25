@@ -1,23 +1,19 @@
 import "server-only";
 import { and, asc, eq, gt, isNull } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
+import { auth } from "./better";
 import type { Ctx } from "./core";
 import { db, schema, type Db } from "./db";
-import { LeanError, id, sha256, token } from "./util";
+import { LeanError, id, sha256 } from "./util";
 
-const { users, sessions, members, workspaces, agentKeys, invites } = schema;
+// Who's asking: a person signed in through Better Auth, or an agent with a key.
 
-export const SESSION = "lean_session";
-export const INVITE = "lean_invite";
-const DAYS = 30;
+const { members, workspaces, agentKeys, invites } = schema;
 
-export const providers = () => ({
-  github: !!(process.env.GITHUB_ID && process.env.GITHUB_SECRET),
-  google: !!(process.env.GOOGLE_ID && process.env.GOOGLE_SECRET),
-  local: process.env.NODE_ENV !== "production",
-});
+/** The workspace a person is looking at, when they belong to more than one. */
+export const WORKSPACE = "lean_ws";
 
-/** Where the app lives, for OAuth callbacks and the MCP URL shown in the app. */
+/** Where the app lives, for the MCP URL shown in the app. */
 export async function origin() {
   if (process.env.PUBLIC_URL) return process.env.PUBLIC_URL.replace(/\/$/, "");
   const h = await headers();
@@ -26,11 +22,10 @@ export async function origin() {
   return `${proto}://${host}`;
 }
 
-export const secure = () => process.env.NODE_ENV === "production";
+type User = { id: string; name: string; email: string; image?: string | null };
 
 type Session = {
-  tokenHash: string;
-  user: typeof users.$inferSelect;
+  user: User;
   me: typeof members.$inferSelect;
   workspace: { id: string; name: string };
   workspaces: { id: string; name: string }[];
@@ -45,7 +40,7 @@ async function memberships(d: Db, userId: string) {
     .orderBy(asc(workspaces.createdAt));
 }
 
-async function newWorkspace(d: Db, user: typeof users.$inferSelect) {
+async function newWorkspace(d: Db, user: User) {
   const ws = id();
   const first = user.name.split(/\s+/)[0] || "My";
   await d.transaction(async (tx) => {
@@ -56,37 +51,34 @@ async function newWorkspace(d: Db, user: typeof users.$inferSelect) {
       kind: "person",
       userId: user.id,
       name: user.name,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: user.image ?? null,
       role: "owner",
     });
   });
   return ws;
 }
 
+/** Who Better Auth says is signed in, with no workspace set up yet. */
+export async function signedIn(): Promise<User | null> {
+  const s = await (await auth()).api.getSession({ headers: await headers() });
+  return s?.user ?? null;
+}
+
 /** The signed-in person and their current workspace, or null. */
 export async function session(): Promise<Session | null> {
-  const raw = (await cookies()).get(SESSION)?.value;
-  if (!raw) return null;
+  const user = await signedIn();
+  if (!user) return null;
   const d = await db();
-  const tokenHash = sha256(raw);
-  const rows = await d
-    .select({ s: sessions, u: users })
-    .from(sessions)
-    .innerJoin(users, eq(users.id, sessions.userId))
-    .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, new Date())))
-    .limit(1);
-  const row = rows[0];
-  if (!row) return null;
-  let list = await memberships(d, row.u.id);
+  let list = await memberships(d, user.id);
   if (!list.length) {
-    // Removed from every workspace: start a fresh one rather than lock them out.
-    await newWorkspace(d, row.u);
-    list = await memberships(d, row.u.id);
+    // First sign-in, or removed from every workspace: start a fresh one.
+    await newWorkspace(d, user);
+    list = await memberships(d, user.id);
   }
-  const pick = list.find((x) => x.w.id === row.s.workspaceId) ?? list[0];
+  const want = (await cookies()).get(WORKSPACE)?.value;
+  const pick = list.find((x) => x.w.id === want) ?? list[0];
   return {
-    tokenHash,
-    user: row.u,
+    user,
     me: pick.m,
     workspace: { id: pick.w.id, name: pick.w.name },
     workspaces: list.map((x) => ({ id: x.w.id, name: x.w.name })),
@@ -99,14 +91,24 @@ export async function personCtx(): Promise<Ctx & { session: Session }> {
   return { db: await db(), ws: s.workspace.id, me: s.me, session: s };
 }
 
+/** Remember which workspace to show. Route handlers only (it sets a cookie). */
+export async function rememberWorkspace(workspaceId: string) {
+  (await cookies()).set(WORKSPACE, workspaceId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: 365 * 86400,
+  });
+}
+
 export async function switchWorkspace(s: Session, workspaceId: string) {
   if (!s.workspaces.some((w) => w.id === workspaceId)) throw new LeanError("Not a member of that workspace", 403);
-  const d = await db();
-  await d.update(sessions).set({ workspaceId }).where(eq(sessions.tokenHash, s.tokenHash));
+  await rememberWorkspace(workspaceId);
 }
 
 /** Join a workspace by invite. Returns the workspace id, or null if the invite is no good. */
-export async function acceptInvite(d: Db, user: typeof users.$inferSelect, tok: string) {
+export async function acceptInvite(d: Db, user: User, tok: string) {
   const rows = await d
     .select()
     .from(invites)
@@ -129,7 +131,7 @@ export async function acceptInvite(d: Db, user: typeof users.$inferSelect, tok: 
       kind: "person",
       userId: user.id,
       name: user.name,
-      avatarUrl: user.avatarUrl,
+      avatarUrl: user.image ?? null,
       role: "member",
     });
   }
@@ -147,77 +149,14 @@ export async function inviteInfo(tok: string) {
   return rows[0] ?? null;
 }
 
-type Profile = {
-  provider: "github" | "google" | "local";
-  providerId: string;
-  name: string;
-  email: string | null;
-  avatarUrl: string | null;
-};
-
-/** Find or create the user, join any pending invite, start a session. */
-export async function signIn(p: Profile) {
-  const d = await db();
-  const col = p.provider === "github" ? users.githubId : p.provider === "google" ? users.googleId : null;
-  let user = col ? (await d.select().from(users).where(eq(col, p.providerId)).limit(1))[0] : undefined;
-  if (!user && p.email) user = (await d.select().from(users).where(eq(users.email, p.email.toLowerCase())).limit(1))[0];
-  if (!user) {
-    [user] = await d
-      .insert(users)
-      .values({
-        id: id(),
-        name: p.name,
-        email: p.email?.toLowerCase() ?? null,
-        avatarUrl: p.avatarUrl,
-        githubId: p.provider === "github" ? p.providerId : null,
-        googleId: p.provider === "google" ? p.providerId : null,
-      })
-      .returning();
-  } else {
-    const set: Partial<typeof users.$inferInsert> = {};
-    if (p.provider === "github" && !user.githubId) set.githubId = p.providerId;
-    if (p.provider === "google" && !user.googleId) set.googleId = p.providerId;
-    if (p.avatarUrl && !user.avatarUrl) set.avatarUrl = p.avatarUrl;
-    if (Object.keys(set).length) [user] = await d.update(users).set(set).where(eq(users.id, user.id)).returning();
-  }
-
-  const jar = await cookies();
-  let wsId: string | null = null;
-  const inv = jar.get(INVITE)?.value;
-  if (inv) {
-    wsId = await acceptInvite(d, user, inv);
-    jar.delete(INVITE);
-  }
-  if (!wsId && !(await memberships(d, user.id)).length) wsId = await newWorkspace(d, user);
-
-  const raw = token(32);
-  await d.insert(sessions).values({
-    tokenHash: sha256(raw),
-    userId: user.id,
-    workspaceId: wsId,
-    expiresAt: new Date(Date.now() + DAYS * 864e5),
-  });
-  jar.set(SESSION, raw, { httpOnly: true, sameSite: "lax", secure: secure(), path: "/", maxAge: DAYS * 86400 });
-}
-
-export async function signOut() {
-  const jar = await cookies();
-  const raw = jar.get(SESSION)?.value;
-  if (raw) {
-    const d = await db();
-    await d.delete(sessions).where(eq(sessions.tokenHash, sha256(raw)));
-  }
-  jar.delete(SESSION);
-}
-
 /* ───────── Agents ───────── */
 
 const hits = new Map<string, number[]>();
 
 /** Resolve a bearer key to its agent. Rate limited to 120 calls a minute per key. */
 export async function agentCtx(req: Request): Promise<Ctx> {
-  const auth = req.headers.get("authorization") ?? "";
-  const m = /^Bearer\s+(\S+)$/i.exec(auth);
+  const header = req.headers.get("authorization") ?? "";
+  const m = /^Bearer\s+(\S+)$/i.exec(header);
   if (!m) throw new LeanError("Missing key. Send Authorization: Bearer lk_…", 401);
   const hash = sha256(m[1]);
 
@@ -256,4 +195,3 @@ export async function anyCtx(req: Request): Promise<{ db: Db; ws: string } | nul
   }
   return null;
 }
-

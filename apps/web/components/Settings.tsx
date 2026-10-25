@@ -5,6 +5,7 @@ import type { Member, Project, SettingsData } from "@/lib/types";
 import { keyFor } from "@/lib/key";
 import { rpc } from "./api";
 import { useApp } from "./App";
+import { authClient } from "./authClient";
 import { Connect } from "./Connect";
 import { hardGo, liveMembers, putMember, putProject, setWorkspaceName, toast, useData } from "./store";
 import { Av, ago, copy } from "./ui";
@@ -71,9 +72,15 @@ export function Settings() {
               <div>{d.me.name}</div>
               <div className="small">{d.me.email ?? "No email"}</div>
             </div>
-            <form action="/auth/signout" method="post">
-              <button className="btn">Sign out</button>
-            </form>
+            <button
+              className="btn"
+              onClick={async () => {
+                await authClient.signOut();
+                hardGo("/signin");
+              }}
+            >
+              Sign out
+            </button>
           </div>
         </section>
       </div>

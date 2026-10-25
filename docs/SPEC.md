@@ -22,7 +22,7 @@ what's planned, who (or which agent) is on it, and what was done.
    per view, hairline columns, ledger rows. Motion comes from one spring engine
    (`packages/ui/src/spring.ts`): interruptible, damping ratio plus response.
 5. **Runs with no settings.** `pnpm dev` works with zero environment variables: an embedded
-   Postgres (PGlite) on disk and a local sign-in. Production adds a database URL and OAuth.
+   Postgres (PGlite) on disk and email + password sign-in. Production adds a database URL and OAuth.
 
 ## 2. Vocabulary
 
@@ -46,9 +46,9 @@ the tabs drop to a second row and the button shrinks to a plus.
 
 ### 3.1 Sign in
 Mark, "Sign in to Leanear", Continue with GitHub (accent), Continue with Google. Only the
-providers that are configured are shown. In development with no providers configured a
-**Continue locally** form takes a name and email. An invite link (`/join/<token>`) shows the
-workspace being joined above the buttons.
+providers that are configured are shown. Outside production an email and password form
+also appears (it signs you in, or makes the account on first use). An invite link
+(`/join/<token>`) shows the workspace being joined, and sign-in comes back to it.
 
 ### 3.2 Onboarding
 Two steps, sliding the way you are going, with progress dots.
@@ -161,8 +161,8 @@ did, and moves it to Done (or back to a person with a question).
 ## 6. Data model (Postgres)
 
 ```
-users        id, name, email, avatar_url, github_id, google_id, created_at
-sessions     token_hash pk, user_id, expires_at
+user, session,
+account, verification   Better Auth's tables (see lib/schema.ts)
 workspaces   id, name, created_at
 members      id, workspace_id, kind(person|agent), user_id?, name, avatar_url?, role(owner|member),
              removed_at?, updated_at
@@ -180,23 +180,28 @@ takes `min - 1` in its column and a drop takes the midpoint of its neighbours.
 
 ## 7. Auth
 
-- OAuth 2 authorization code flow for GitHub (`read:user user:email`) and Google
-  (`openid email profile`), with a random `state` in a short-lived httpOnly cookie.
-- Accounts link by provider id first, then by verified email.
-- Sessions: a random 32-byte token in an httpOnly, SameSite=Lax cookie `lean_session`,
-  30 days, stored as a SHA-256 hash.
+- People sign in through [Better Auth](https://better-auth.com), running inside the app
+  (`apps/web/lib/better.ts`, served at `/api/auth/*`) with its tables in our Postgres via the
+  Drizzle adapter. Not Neon Auth: the app must also run on any Postgres for self-hosting.
+- Providers: GitHub and Google. Email and password only when `NODE_ENV` is not production.
+  Accounts with the same email link across trusted providers.
+- Sessions last 30 days and refresh daily. The workspace being viewed is a separate
+  httpOnly cookie, `lean_ws`, checked against the person's memberships on every request.
+- First sign-in makes a workspace, unless it came through an invite, which is accepted
+  first.
+- Agents never use Better Auth: their `lk_` keys are hashed in `agent_keys`.
 - Every API and MCP call resolves to a member in a workspace, and every query is scoped to
   that workspace.
-- Local sign-in exists only when `NODE_ENV` is not production.
 
 ## 8. Settings (environment)
 
 | Variable | Needed | What |
 |---|---|---|
 | `DATABASE_URL` | Production | Postgres connection string (Neon works). Without it the app uses PGlite in `apps/web/.data`. |
-| `PUBLIC_URL` | Production | Where the app runs, like `https://app.leanear.app`. Used for OAuth callbacks and the MCP URL shown in the app. Falls back to the request origin. |
-| `GITHUB_ID`, `GITHUB_SECRET` | One provider | GitHub OAuth app. Callback: `<PUBLIC_URL>/auth/github/callback` |
-| `GOOGLE_ID`, `GOOGLE_SECRET` | Optional | Google OAuth client. Callback: `<PUBLIC_URL>/auth/google/callback` |
+| `BETTER_AUTH_SECRET` | Production | 32+ random bytes (`openssl rand -base64 32`). Signs sessions. |
+| `PUBLIC_URL` | Production | Where the app runs, like `https://app.leanear.app`. Better Auth's base URL and the MCP URL shown in the app. Falls back to the request origin. |
+| `GITHUB_ID`, `GITHUB_SECRET` | One provider | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github` |
+| `GOOGLE_ID`, `GOOGLE_SECRET` | Optional | Google OAuth client. Callback: `<PUBLIC_URL>/api/auth/callback/google` |
 
 Migrations run before `next build` when `DATABASE_URL` is set, and on first use with PGlite.
 

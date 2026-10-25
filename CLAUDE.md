@@ -12,6 +12,8 @@
 - Every task operation lives once in `apps/web/lib/core.ts`. The app (`/api/rpc`) and MCP
   (`/mcp`) both call it; don't fork logic into a route.
 - Schema changes: edit `apps/web/lib/schema.ts`, then `pnpm --filter @leanear/web db:generate`.
-- `pnpm dev` needs no env vars (PGlite in `apps/web/.data`, local sign-in).
+- Auth is Better Auth (`apps/web/lib/better.ts`, `/api/auth/*`, Drizzle adapter, tables in
+  our Postgres). Not Neon Auth. Agents use `lk_` keys, never Better Auth.
+- `pnpm dev` needs no env vars (PGlite in `apps/web/.data`, email + password sign-in).
 - Deploys: Vercel project `leanear` (root `apps/site`, leanear.app) and a second project for
   `apps/web` (app.leanear.app).

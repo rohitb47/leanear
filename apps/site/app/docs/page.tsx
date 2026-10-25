@@ -68,6 +68,7 @@ const TOOLS: { name: string; does: string; args: string }[] = [
 
 const ENV: { key: string; what: string }[] = [
   { key: "DATABASE_URL", what: "Your Postgres connection string" },
+  { key: "BETTER_AUTH_SECRET", what: "32 random bytes: openssl rand -base64 32" },
   { key: "PUBLIC_URL", what: "Where it runs, like https://tasks.example.com" },
   { key: "GITHUB_ID, GITHUB_SECRET", what: "A GitHub OAuth app, for sign-in" },
   { key: "GOOGLE_ID, GOOGLE_SECRET", what: "Optional: Google sign-in" },
@@ -189,7 +190,7 @@ export default async function Docs() {
           <h2>Self-host</h2>
           <p>One Next.js app and one Postgres database. Screenshots live in Postgres, so there&apos;s nothing else to run.</p>
           <Code code={"git clone https://github.com/rohitb47/leanear\ncd leanear\ndocker compose up"} file="Terminal" />
-          <p>Four settings, in a .env file. On your own machine you need none: <code className="inline">pnpm dev</code> runs on an embedded database with a local sign-in.</p>
+          <p>Five settings, in a .env file. On your own machine you need none: <code className="inline">pnpm dev</code> runs on an embedded database with a local sign-in.</p>
           <div className="tools">
             {ENV.map((e) => (
               <div key={e.key} className="tool-row env">
