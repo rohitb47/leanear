@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { GitHubIcon, Mark } from "./Mark";
-import { NavShell } from "./Nav";
-import { APP, GITHUB, X } from "@/lib/site";
+import Link from "next/link"
+import { GitHubIcon, Mark } from "@leanear/ui/mark"
+import { NavShell } from "./nav"
+import { APP, GITHUB, X } from "@/lib/site/links"
 
 export function SiteNav({ count }: { count: number | null }) {
   return (
@@ -18,10 +18,17 @@ export function SiteNav({ count }: { count: number | null }) {
           <Link href="/docs">Docs</Link>
         </nav>
         <div className="right">
-          <a className="btn ghost sm" href={GITHUB} target="_blank" rel="noreferrer">
+          <a
+            className="btn ghost sm"
+            href={GITHUB}
+            target="_blank"
+            rel="noreferrer"
+          >
             <GitHubIcon size={15} />
             GitHub
-            {count !== null && <span className="count">{count.toLocaleString("en")}</span>}
+            {count !== null && (
+              <span className="count">{count.toLocaleString("en")}</span>
+            )}
           </a>
           <a className="btn sm" href={APP}>
             Sign in
@@ -29,7 +36,7 @@ export function SiteNav({ count }: { count: number | null }) {
         </div>
       </div>
     </NavShell>
-  );
+  )
 }
 
 export function SiteFoot() {
@@ -48,12 +55,16 @@ export function SiteFoot() {
           <a href={X} target="_blank" rel="noreferrer">
             X
           </a>
-          <a href={`${GITHUB}/blob/main/LICENSE`} target="_blank" rel="noreferrer">
+          <a
+            href={`${GITHUB}/blob/main/LICENSE`}
+            target="_blank"
+            rel="noreferrer"
+          >
             Licence
           </a>
         </nav>
         <span className="mono">© 2026 Leanear</span>
       </div>
     </footer>
-  );
+  )
 }

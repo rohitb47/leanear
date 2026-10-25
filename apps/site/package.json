@@ -6,14 +6,16 @@
     "dev": "next dev --port 3001",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "typecheck": "next typegen && tsc --noEmit"
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/",
+    "typecheck": "next typegen && tsc --noEmit",
+    "check": "pnpm typecheck && pnpm lint && NEXT_DIST_DIR=.next-check pnpm build"
   },
   "dependencies": {
+    "@leanear/ui": "workspace:*",
+    "motion": "14.1.0",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0",
-    "@leanear/ui": "workspace:*"
+    "react-dom": "19.3.0"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",

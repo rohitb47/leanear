@@ -1,7 +1,8 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from "next"
 
 const nextConfig: NextConfig = {
   devIndicators: false,
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   transpilePackages: ["@leanear/ui"],
   async redirects() {
     return [
@@ -11,7 +12,7 @@ const nextConfig: NextConfig = {
         destination: "https://leanear.app/:path*",
         permanent: true,
       },
-    ];
+    ]
   },
   cacheComponents: true,
   partialPrefetching: true,
@@ -23,6 +24,6 @@ const nextConfig: NextConfig = {
       },
     },
   },
-};
+}
 
-export default nextConfig;
+export default nextConfig
