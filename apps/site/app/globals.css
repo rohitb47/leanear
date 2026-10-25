@@ -1830,6 +1830,10 @@ a {
   padding: 6px 8px 6px var(--s4);
   border-bottom: 1px solid var(--line);
 }
+.cb-tools {
+  display: flex;
+  gap: 4px;
+}
 /* Copy: a square icon button; the icon swaps to a tick in place */
 .copy {
   position: relative;
@@ -1879,6 +1883,9 @@ a {
   transform: none;
   filter: none;
 }
+.copy[aria-pressed="true"] {
+  color: var(--ink);
+}
 .copy:focus-visible {
   outline: 2px solid var(--ink);
   outline-offset: 2px;
@@ -1890,6 +1897,10 @@ a {
   font-family: var(--mono);
   font-size: 13px;
   line-height: 1.6;
+}
+.codeblock[data-wrap="true"] pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .client-head {
   display: flex;

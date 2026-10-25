@@ -1,6 +1,7 @@
 import Link from "next/link"
-import { Copy } from "@/components/common/copy"
 import { doc } from "@/lib/site/docs"
+
+export { Code } from "@/components/docs/code"
 
 // Eyebrow, title and lead at the top of every docs page.
 export function DocHead({
@@ -17,20 +18,6 @@ export function DocHead({
       <h1>{page.title}</h1>
       <p className="lead">{lead}</p>
     </header>
-  )
-}
-
-export function Code({ code, file }: { code: string; file?: string }) {
-  return (
-    <div className="codeblock">
-      <div className="cb-head">
-        <span className="mono">{file ?? "Command"}</span>
-        <Copy text={code} />
-      </div>
-      <pre>
-        <code>{code}</code>
-      </pre>
-    </div>
   )
 }
 
