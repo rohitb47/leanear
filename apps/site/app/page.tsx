@@ -237,7 +237,19 @@ export default async function Home() {
               <Logo k="docker" size={18} brand />
               Docker
               <span className="pill-sep" aria-hidden />
-              <code>docker compose up</code>
+              <span className="pill-cta">
+                Read the guide
+                <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
+                  <path
+                    d="M4.5 2.5 8 6l-3.5 3.5"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              </span>
             </Link>
             <h1 className="h1 rise" style={{ "--i": 0 } as React.CSSProperties}>
               <span className="line dim">Project management for</span>{" "}

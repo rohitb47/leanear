@@ -318,10 +318,15 @@ a {
   height: 16px;
   background: var(--line);
 }
-.pill code {
-  font-family: var(--mono);
-  font-size: 13px;
+.pill-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
   color: var(--muted);
+  transition: color 0.15s;
+}
+.pill:hover .pill-cta {
+  color: var(--ink);
 }
 /* Phones: just "Self-host with Docker", on one line */
 @media (max-width: 760px) {
@@ -329,7 +334,7 @@ a {
     white-space: nowrap;
   }
   .pill .pill-sep,
-  .pill code {
+  .pill .pill-cta {
     display: none;
   }
 }
