@@ -323,6 +323,16 @@ a {
   font-size: 13px;
   color: var(--muted);
 }
+/* Phones: just "Self-host with Docker", on one line */
+@media (max-width: 760px) {
+  .pill {
+    white-space: nowrap;
+  }
+  .pill .pill-sep,
+  .pill code {
+    display: none;
+  }
+}
 .hero .sub {
   max-width: 560px;
   margin-top: var(--s5);
