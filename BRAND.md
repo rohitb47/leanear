@@ -58,7 +58,8 @@
 - **The hero is the words.** Pill, headline, one line, one button. The headline
   is two lines, never three: "Project management for" dim, then one ink phrase
   that cycles (a small team, you and Claude, two co-founders, every agent) rolling
-  up (the old phrase out the top, the next in from below, a soft spring),
+  up (the old phrase out the top, the next in from below, both blurring
+  as they move, a soft spring),
   each phrase centred so the line never jumps. The morph is too much at
   headline size. The brand's
   dot grid (34px, seeded, mirrored on both axes) frames it and fades out

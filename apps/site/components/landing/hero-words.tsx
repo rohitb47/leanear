@@ -27,9 +27,9 @@ export function HeroWords() {
       <AnimatePresence initial={false}>
         <motion.span
           key={WORDS[i]}
-          initial={{ y: "100%", opacity: 0 }}
-          animate={{ y: "0%", opacity: 1 }}
-          exit={{ y: "-100%", opacity: 0 }}
+          initial={{ y: "100%", opacity: 0, filter: "blur(8px)" }}
+          animate={{ y: "0%", opacity: 1, filter: "blur(0px)" }}
+          exit={{ y: "-100%", opacity: 0, filter: "blur(8px)" }}
           transition={{ type: "spring", bounce: 0.1, duration: 0.7 }}
         >
           {WORDS[i]}
