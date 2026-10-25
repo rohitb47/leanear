@@ -1,0 +1,237 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// Tables and columns are snake_case in the database and camelCase here.
+
+enum MemberKind {
+  person
+  agent
+}
+
+enum MemberRole {
+  owner
+  member
+}
+
+enum TaskType {
+  bug
+  feature
+  idea
+}
+
+enum TaskStatus {
+  backlog
+  todo
+  doing
+  done
+  canceled
+}
+
+/// A person who signs in. Better Auth owns this table and the three after it.
+/// Agents are never users: they are members with a key.
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  sessions      Session[]
+  accounts      Account[]
+  members       Member[]
+
+  @@map("user")
+}
+
+model Session {
+  id        String   @id
+  expiresAt DateTime @map("expires_at") @db.Timestamptz
+  token     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+  ipAddress String?  @map("ip_address")
+  userAgent String?  @map("user_agent")
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "session_user")
+  @@map("session")
+}
+
+model Account {
+  id                    String    @id
+  accountId             String    @map("account_id")
+  providerId            String    @map("provider_id")
+  userId                String    @map("user_id")
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?   @map("access_token")
+  refreshToken          String?   @map("refresh_token")
+  idToken               String?   @map("id_token")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at") @db.Timestamptz
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at") @db.Timestamptz
+  scope                 String?
+  password              String?
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt             DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([userId], map: "account_user")
+  @@map("account")
+}
+
+/// OAuth state and other short-lived things Better Auth keeps.
+model Verification {
+  id         String   @id
+  identifier String
+  value      String
+  expiresAt  DateTime @map("expires_at") @db.Timestamptz
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz
+
+  @@index([identifier], map: "verification_identifier")
+  @@map("verification")
+}
+
+model Workspace {
+  id        String    @id
+  name      String
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  members   Member[]
+  invites   Invite[]
+  projects  Project[]
+  tasks     Task[]
+  images    Image[]
+
+  @@map("workspaces")
+}
+
+/// Somebody in a workspace: a person (with a user) or an agent (with keys).
+/// Removing one sets `removedAt`, so their name stays on old activity.
+model Member {
+  id          String     @id
+  workspaceId String     @map("workspace_id")
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  kind        MemberKind
+  userId      String?    @map("user_id")
+  user        User?      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  avatarUrl   String?    @map("avatar_url")
+  role        MemberRole @default(member)
+  removedAt   DateTime?  @map("removed_at") @db.Timestamptz
+  updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
+  keys        AgentKey[]
+  assigned    Task[]
+
+  @@index([workspaceId, updatedAt], map: "members_ws")
+  @@index([userId], map: "members_user")
+  @@map("members")
+}
+
+/// An agent's `lk_` key. Only the hash is kept; `hint` is its last four.
+model AgentKey {
+  id         String    @id
+  memberId   String    @map("member_id")
+  member     Member    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  hash       String    @unique
+  hint       String
+  lastUsedAt DateTime? @map("last_used_at") @db.Timestamptz
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("agent_keys")
+}
+
+model Invite {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  token       String    @unique
+  createdBy   String    @map("created_by")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
+
+  @@map("invites")
+}
+
+/// `seq` is the last task number handed out, so numbers never repeat. A key
+/// is unique among live projects; `lib/projects` checks it, since a deleted
+/// project keeps its key.
+model Project {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  key         String
+  name        String
+  brief       String    @default("")
+  seq         Int       @default(0)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  tasks       Task[]
+
+  @@index([workspaceId, updatedAt], map: "projects_ws")
+  @@map("projects")
+}
+
+/// `deletedAt` rather than a delete, so the next sync can tell every open
+/// board the task is gone (docs/architecture.md, Sync).
+model Task {
+  id          String     @id
+  projectId   String     @map("project_id")
+  project     Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  workspaceId String     @map("workspace_id")
+  workspace   Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  number      Int
+  title       String
+  notes       String     @default("")
+  type        TaskType   @default(feature)
+  status      TaskStatus @default(todo)
+  assigneeId  String?    @map("assignee_id")
+  assignee    Member?    @relation(fields: [assigneeId], references: [id], onDelete: SetNull)
+  position    Float      @default(0)
+  createdBy   String     @map("created_by")
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
+  deletedAt   DateTime?  @map("deleted_at") @db.Timestamptz
+  activity    Activity[]
+
+  @@unique([projectId, number], map: "tasks_project_number")
+  @@index([workspaceId, updatedAt], map: "tasks_ws")
+  @@index([projectId, status, position], map: "tasks_col")
+  @@map("tasks")
+}
+
+/// A task's history. `kind` is one of the strings in `lib/sync/types.ts`.
+model Activity {
+  id          BigInt   @id @default(autoincrement())
+  taskId      String   @map("task_id")
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  workspaceId String   @map("workspace_id")
+  actorId     String   @map("actor_id")
+  kind        String
+  data        Json?
+  body        String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([taskId, id], map: "activity_task")
+  @@map("activity")
+}
+
+/// Screenshots, kept in Postgres so a workspace is one database to back up.
+model Image {
+  id          String    @id
+  workspaceId String    @map("workspace_id")
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  taskId      String?   @map("task_id")
+  mime        String
+  bytes       Bytes
+  createdBy   String    @map("created_by")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@map("images")
+}

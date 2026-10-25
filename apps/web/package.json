@@ -3,32 +3,40 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "prisma generate",
     "dev": "next dev --port 3000",
-    "build": "node scripts/migrate.mjs && next build",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --cache --cache-location node_modules/.cache/eslint/",
     "typecheck": "next typegen && tsc --noEmit",
-    "db:generate": "drizzle-kit generate",
-    "db:migrate": "node scripts/migrate.mjs"
+    "check:fast": "prisma validate && pnpm typecheck && pnpm lint",
+    "check": "pnpm check:fast && NEXT_DIST_DIR=.next-check pnpm build",
+    "db:push": "prisma db push && echo '\n  Client regenerated - RESTART the dev server (Turbopack will not reload it)\n'",
+    "db:push:prod": "node --env-file=.env.production.local node_modules/prisma/build/index.js db push"
   },
   "dependencies": {
-    "@electric-sql/pglite": "^0.5.11",
     "@leanear/ui": "workspace:*",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@trpc/client": "^11.19.0",
+    "@trpc/server": "^11.19.0",
     "better-auth": "^1.7.12",
-    "drizzle-orm": "^0.45.4",
     "next": "16.4.3",
-    "postgres": "^3.4.9",
+    "pg": "^8.23.1",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "server-only": "^0.0.1"
+    "server-only": "^0.0.1",
+    "superjson": "^2.2.6",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "16.4.3",
+    "prisma": "^7.10.1",
     "typescript": "^5"
   }
 }
