@@ -7,6 +7,7 @@
     "build": "pnpm -r build",
     "check": "pnpm -r check",
     "db:push": "pnpm --filter @leanear/web db:push",
+    "db:push:prod": "pnpm --filter @leanear/web db:push:prod",
     "format": "prettier --write \"**/*.{ts,tsx,mjs,md,css}\""
   },
   "packageManager": "pnpm@11.24.0",
