@@ -4,10 +4,14 @@
   "scripts": {
     "dev": "pnpm --filter @leanear/web dev",
     "dev:site": "pnpm --filter @leanear/site dev",
-    "db:migrate": "pnpm --filter @leanear/web db:migrate",
     "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck"
+    "check": "pnpm -r check",
+    "db:push": "pnpm --filter @leanear/web db:push",
+    "format": "prettier --write \"**/*.{ts,tsx,mjs,md,css}\""
   },
-  "packageManager": "pnpm@11.24.0"
+  "packageManager": "pnpm@11.24.0",
+  "devDependencies": {
+    "prettier": "^3.9.10",
+    "prettier-plugin-tailwindcss": "^0.7.4"
+  }
 }
