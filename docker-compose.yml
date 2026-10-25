@@ -1,0 +1,23 @@
+# docker compose up: Postgres plus the app on http://localhost:3000.
+# Sign-in needs a GitHub OAuth app; put GITHUB_ID and GITHUB_SECRET in .env.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_PASSWORD: leanear
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+  app:
+    build: .
+    depends_on:
+      - db
+    ports:
+      - "3000:3000"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: postgres://postgres:leanear@db:5432/postgres
+      PUBLIC_URL: ${PUBLIC_URL:-http://localhost:3000}
+volumes:
+  pgdata:
