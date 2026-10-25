@@ -1,15 +1,14 @@
 # Leanear
 
-Linear, but leaner. The open-source project tool for indie hackers and their AI agents.
+Linear, but leaner. One open-source board for a small team and all its agents.
 
 Five things, nothing else: projects, tasks, statuses, activity and agents. Your agent
 joins over MCP as a member with a name, picks its next task, does it and reports back.
 
-- Free for one person, no cap on tasks
-- $9 a month flat for a workspace of up to 10 people, agents free
-- Free to run on your own server
+- $9 a month flat on Cloud: 10 projects, unlimited tasks, up to 20 people, 5 agents
+- Free to run on your own server, no caps
 
-The app is at [app.leanear.app](https://app.leanear.app), the site at
+The app is at [cloud.leanear.app](https://cloud.leanear.app), the site at
 [leanear.app](https://leanear.app). What it does, screen by screen, is in
 [docs/SPEC.md](docs/SPEC.md).
 
@@ -25,35 +24,31 @@ packages/ui   the spring engine and the mark, shared by both
 
 ```bash
 pnpm install
-pnpm dev        # the app on http://localhost:3000
-pnpm dev:site   # the site on http://localhost:3001
+docker compose up -d   # Postgres on localhost:5432
+cp apps/web/.env.example apps/web/.env.local
+pnpm db:push
+pnpm dev               # the app on http://localhost:3000
+pnpm dev:site          # the site on http://localhost:3001
 ```
 
-No settings needed. Without `DATABASE_URL` the app runs an embedded Postgres in
-`apps/web/.data`, and you sign in with an email and password. Sign-in is
-[Better Auth](https://better-auth.com). Production settings are
-in [apps/web/.env.example](apps/web/.env.example).
-
-To use real Postgres instead, run it in Docker and point the app at it:
-
-```bash
-docker compose up -d db
-echo 'DATABASE_URL=postgres://postgres:leanear@localhost:5432/postgres' >> apps/web/.env.local
-pnpm db:migrate
-pnpm dev
-```
+Fill in `apps/web/.env.local` from the example. Sign-in is GitHub only, so make a GitHub
+OAuth app for local use, with the callback `http://localhost:3000/api/auth/callback/github`.
 
 Connect Claude Code to your local app: add an agent in Settings, then run the line it
 shows you.
 
 ## Self-host
 
+One Next.js app and one Postgres database. Fill in `apps/web/.env.local` from the example,
+then:
+
 ```bash
-docker compose up
+pnpm install
+pnpm db:push
+pnpm build && pnpm --filter @leanear/web start
 ```
 
-Postgres and the app on port 3000. Put `BETTER_AUTH_SECRET` and a GitHub OAuth app
-(`GITHUB_ID`, `GITHUB_SECRET`) in `.env`.
+Or deploy `apps/web` to Vercel with a Neon database.
 
 ## Licence
 
