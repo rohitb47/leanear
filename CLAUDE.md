@@ -2,6 +2,9 @@
 
 @AGENTS.md
 
+- Git: work only on `main`. Never create, switch to, or push another branch (no `claude/*`,
+  no feature branches, no worktrees). Commit to `main` and push `main`. Rohit, 25 Oct 2026.
+
 - Brand: Ledger (Switzer, Geist Mono for ids, one orange accent per view, hairline columns).
   The global rules are in ~/.claude/BRAND.md; the motion reference is the prototype at
   https://claude.ai/artifact/CUwicrRKn5NvpWWkksiVQs.
