@@ -1,4 +1,5 @@
 # docker compose up: Postgres plus the app on http://localhost:3000.
+# docker compose up -d db: only Postgres, on localhost:5432, for `pnpm dev`.
 # Put BETTER_AUTH_SECRET, GITHUB_ID and GITHUB_SECRET in .env.
 # GitHub callback: http://localhost:3000/api/auth/callback/github
 services:
@@ -6,6 +7,8 @@ services:
     image: postgres:17-alpine
     environment:
       POSTGRES_PASSWORD: leanear
+    ports:
+      - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
   app:

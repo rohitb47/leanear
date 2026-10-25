@@ -34,6 +34,15 @@ No settings needed. Without `DATABASE_URL` the app runs an embedded Postgres in
 [Better Auth](https://better-auth.com). Production settings are
 in [apps/web/.env.example](apps/web/.env.example).
 
+To use real Postgres instead, run it in Docker and point the app at it:
+
+```bash
+docker compose up -d db
+echo 'DATABASE_URL=postgres://postgres:leanear@localhost:5432/postgres' >> apps/web/.env.local
+pnpm db:migrate
+pnpm dev
+```
+
 Connect Claude Code to your local app: add an agent in Settings, then run the line it
 shows you.
 

@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "pnpm --filter @leanear/web dev",
     "dev:site": "pnpm --filter @leanear/site dev",
+    "db:migrate": "pnpm --filter @leanear/web db:migrate",
     "build": "pnpm -r build",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck"

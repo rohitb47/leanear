@@ -18,5 +18,7 @@
 - Auth is Better Auth (`apps/web/lib/better.ts`, `/api/auth/*`, Drizzle adapter, tables in
   our Postgres). Not Neon Auth. Agents use `lk_` keys, never Better Auth.
 - `pnpm dev` needs no env vars (PGlite in `apps/web/.data`, email + password sign-in).
-- Deploys: Vercel project `leanear` (root `apps/site`, leanear.app) and a second project for
-  `apps/web` (app.leanear.app).
+- Deploys: both build from `main` on push. Vercel project `leanear` (root `apps/site`,
+  leanear.app) and `leanear-app` (root `apps/web`, app.leanear.app).
+- Local database: `docker compose up -d db` (Postgres on localhost:5432), `DATABASE_URL` in
+  `apps/web/.env.local`, then `pnpm db:migrate`.
