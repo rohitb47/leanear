@@ -19,19 +19,28 @@ Run `pnpm install` and `pnpm check` from the repo root.
 
 ## Read these when they apply
 
-| Read                                            | Before                                            |
-| ----------------------------------------------- | ------------------------------------------------- |
-| [`docs/architecture.md`](docs/architecture.md)  | auth, agents and MCP, sync, or the schema         |
-| [`docs/data-access.md`](docs/data-access.md)    | reading or writing data; adding a procedure       |
-| [`docs/SPEC.md`](docs/SPEC.md)                  | changing what a screen or tool does; keep it true |
-| [`BRAND.md`](BRAND.md) and `~/.claude/BRAND.md` | any page, copy or design work, site or app        |
+| Read                                           | Before                                                  |
+| ---------------------------------------------- | ------------------------------------------------------- |
+| [`docs/architecture.md`](docs/architecture.md) | auth, agents and MCP, sync, or the schema               |
+| [`docs/data-access.md`](docs/data-access.md)   | reading or writing data; adding a procedure             |
+| [`docs/SPEC.md`](docs/SPEC.md)                 | changing what a screen, page or tool does; keep it true |
+| [`DESIGN.md`](DESIGN.md)                       | any page, screen or component, site or app              |
 
-Brand: `BRAND.md` at the repo root (dark only, Bricolage headings, Geist body, one orange accent per view),
-on top of `~/.claude/BRAND.md`. Read both before any page or screen.
-The motion reference is the prototype at https://claude.ai/artifact/CUwicrRKn5NvpWWkksiVQs.
-Motion: layout changes (things moving, resizing, a selection sliding) use Motion
-(`motion/react`, `layout` and `layoutId`), Rohit, 25 Oct. Drags, throws and other
-hand-driven physics use `@leanear/ui/spring` (damping ratio + response). Nothing else.
+## Design
+
+- Load the **row-taste** skill before any page, screen, copy or design work: it's
+  Rohit's taste across every project.
+- `DESIGN.md` at the root is Leanear's own look: tokens on top, the why underneath,
+  in [Google's DESIGN.md format](https://github.com/google-labs-code/design.md). It
+  wins over row-taste where they differ. Tokens go there, never in this file.
+- The site (`apps/site`) is the reference. A token change goes in
+  `apps/site/app/globals.css` and `DESIGN.md` together; check it with
+  `npx @google/design.md lint DESIGN.md`. The app moves onto the site's look when its
+  turn comes.
+- Motion: layout changes (things moving, resizing, a selection sliding) use Motion
+  (`motion/react`, `layout` and `layoutId`). Drags, throws and other hand-driven physics
+  use `@leanear/ui/spring` (damping ratio + response). Nothing else. The reference is
+  the prototype at https://claude.ai/artifact/CUwicrRKn5NvpWWkksiVQs.
 
 ## Where a file goes
 

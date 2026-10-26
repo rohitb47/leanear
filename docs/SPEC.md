@@ -1,8 +1,8 @@
 # Leanear: product spec
 
 Linear, but leaner. A project tool for a small team and its AI agents. This spec covers
-the app at **cloud.leanear.app** (`apps/web`). The marketing site at **leanear.app** is
-`apps/site`.
+the app at **cloud.leanear.app** (`apps/web`) and, in §11, the site at **leanear.app**
+(`apps/site`).
 
 The first real customer is us: Rohit, one more person, and Claude Code, running the Provida
 (NDIS) product. Leanear is the single source of truth for what is happening in that product:
@@ -18,7 +18,7 @@ what's planned, who (or which agent) is on it, and what was done.
 3. **One code path.** The app (tRPC) and the MCP server call the same functions in
    `apps/web/lib/` (docs/data-access.md). An agent can do everything a person can do with tasks, and
    nothing more (no settings, no keys, no members).
-4. **Leanear brand.** See `BRAND.md` at the repo root: Bricolage Grotesque headings, Geist body, Geist Mono for ids and metadata, one orange accent
+4. **Leanear brand.** See `DESIGN.md`: Bricolage Grotesque headings, Geist body, Geist Mono for ids and metadata, one orange accent
    per view, hairline columns, ledger rows. Motion comes from one spring engine
    (`packages/ui/src/spring.ts`): interruptible, damping ratio plus response.
 5. **Runs on three settings.** `pnpm dev` needs a Postgres (`docker compose up -d`), a secret
@@ -231,3 +231,30 @@ docs/         this file, architecture.md and data-access.md
 Billing, email (invites are links), sign-in other than GitHub, notifications, MCP OAuth sign-in (so ChatGPT and Gemini
 connectors wait; header-based clients work today), GitHub issue sync, mobile apps, public
 boards, file attachments other than images.
+
+## 11. Site (leanear.app)
+
+- **Hero:** pill, headline, one line, one button. The headline is two lines: "Project
+  management for" dim, then one ink phrase that cycles (a small team, you and Claude, two
+  co-founders, every agent), rolling up with a blur and a soft spring, each phrase centred
+  so the line never jumps. The dot grid (34px) frames it and fades before the words.
+- **One idea per section:** a heading, a short line, one thing to look at, at most one link.
+- **The demo is the product as it is:** no keyboard hints, no chrome that isn't the
+  product. A real board (Linear is the reference): columns with no dividers, a status icon
+  and count on each head, every task its own card, the active tab a filled pill. A fixed
+  height; extra cards fade out at the bottom. Three clickable tabs: Board, Context (the
+  project's `.md` files, readable and editable in place, Markdown coloured like a real
+  editor) and Settings (name, key, members, agents with masked keys). An action bar on
+  the right of the header: New task on Board, New file on Context. No looping morphs.
+  "Brief" is retired as a word: it's Context.
+- **Agents:** coding agents only (Claude Code, Cursor, Codex, Copilot, Windsurf). ChatGPT,
+  Grok and the like wait for MCP sign-in. The heading is "Your agents join the team".
+- **Feature cards idle:** each drawing has one quiet loop that acts out its sentence.
+- **Pricing:** Cloud is $9 a month, flat: 10 projects, unlimited tasks, up to 20 people, 5
+  agents, no trial. Self-host is free (AGPL) with no caps. Nothing else is free; never say
+  "free" about Cloud. Three plan cards: Cloud (raised, the only orange button), Self-host,
+  and "Bigger than this", a friendly no that sends bigger teams to Linear. No slider.
+- **The last call** is a feeling, not a price: "Stay lean. Stay cool." with "Get started"
+  and "Self-host". Not a GitHub plea.
+- **Docs** follow the Mintlify shape: sidebar, eyebrow, title, grey lead, numbered steps,
+  previous and next.

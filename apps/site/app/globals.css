@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Leanear tokens (see BRAND.md at the repo root). Dark only, on pure black;
+/* Leanear tokens (mirrored in DESIGN.md at the repo root). Dark only, on pure black;
    each surface is a small step lighter. Orange appears once per view. */
 :root {
   --page: #000000;
