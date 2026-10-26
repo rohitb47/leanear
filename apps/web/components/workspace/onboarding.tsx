@@ -10,6 +10,7 @@ import { Flow } from "@/components/chrome/flow"
 import { AddAgent } from "@/components/workspace/add-agent"
 import { SetupSteps } from "@/components/workspace/setup"
 import { PlanCard, usePrice, useStartPlan } from "@/components/workspace/plan"
+import { Button } from "@/components/common/button"
 
 export type Step = "project" | "plan" | "agent" | "setup"
 
@@ -23,6 +24,7 @@ export function Onboarding({ step: asked }: { step?: Step }) {
   const { go } = useApp()
   const price = usePrice()
   const plan = useStartPlan("/welcome/agent")
+  const [making, setMaking] = useState(false)
   const has = Object.keys(d.projects).length > 0
   const unpaid = d.billing.on && !d.billing.active
   const steps: Step[] = d.billing.on
@@ -47,13 +49,18 @@ export function Onboarding({ step: asked }: { step?: Step }) {
 
   const foot =
     step === "project" ? (
-      <button className="btn accent" type="submit" form="project-form">
+      <Button
+        className="btn accent"
+        type="submit"
+        form="project-form"
+        loading={making}
+      >
         Create project
-      </button>
+      </Button>
     ) : step === "plan" ? (
-      <button className="btn accent" disabled={plan.busy} onClick={plan.start}>
+      <Button className="btn accent" loading={plan.busy} onClick={plan.start}>
         Start for ${price} a month
-      </button>
+      </Button>
     ) : step === "agent" ? (
       <>
         <button className="btn bare" onClick={next}>
@@ -86,7 +93,7 @@ export function Onboarding({ step: asked }: { step?: Step }) {
             One project per product. You can add more later.
           </p>
           <div className="card">
-            <ProjectForm id="project-form" onDone={next} />
+            <ProjectForm id="project-form" onDone={next} onBusy={setMaking} />
           </div>
         </>
       )}
@@ -135,16 +142,23 @@ export function Onboarding({ step: asked }: { step?: Step }) {
 export function ProjectForm({
   id,
   onDone,
+  onBusy,
   autoFocus = true,
 }: {
   id: string
   onDone: (key: string) => void
+  /** For a submit button that lives outside the form, like a pinned footer. */
+  onBusy?: (busy: boolean) => void
   autoFocus?: boolean
 }) {
   const [name, setName] = useState("")
   const [key, setKey] = useState<string | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
+  const [busy, setBusyState] = useState(false)
+  const setBusy = (b: boolean) => {
+    setBusyState(b)
+    onBusy?.(b)
+  }
   const k = key ?? (name.trim() ? keyFor(name) : "")
   return (
     <form

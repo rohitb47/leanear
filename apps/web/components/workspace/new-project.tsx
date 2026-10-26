@@ -1,8 +1,10 @@
 "use client"
 
+import { useState } from "react"
 import { useApp } from "@/components/chrome/app"
 import { Dialog } from "@/components/chrome/dialog"
 import { ProjectForm } from "@/components/workspace/onboarding"
+import { Button } from "@/components/common/button"
 
 /** Another product, another project. */
 export function NewProject({
@@ -13,6 +15,7 @@ export function NewProject({
   onClose: () => void
 }) {
   const { go } = useApp()
+  const [busy, setBusy] = useState(false)
   return (
     <Dialog
       open={open}
@@ -25,6 +28,7 @@ export function NewProject({
         <p>One per product. Its key starts every task id, like PRO-12.</p>
         <ProjectForm
           id="new-project"
+          onBusy={setBusy}
           onDone={(key) => {
             onClose()
             go({ view: "board", key })
@@ -36,9 +40,14 @@ export function NewProject({
         <button className="btn bare sm" onClick={onClose}>
           Cancel
         </button>
-        <button className="btn accent sm" type="submit" form="new-project">
+        <Button
+          className="btn accent sm"
+          type="submit"
+          form="new-project"
+          loading={busy}
+        >
           Create project
-        </button>
+        </Button>
       </div>
     </Dialog>
   )

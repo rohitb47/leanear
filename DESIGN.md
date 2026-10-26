@@ -163,6 +163,10 @@ menus) is `paper` with a hairline; fields and secondary buttons are the soft tin
 - **Buttons:** `button-primary` for the one action that moves you on;
   `button-secondary` for the rest, gaining a hairline ring on hover. Both press
   to 0.97.
+- **Waiting shows the loader:** Apple's activity indicator (eight blades, the
+  highlight walking round, in the text's colour), as in Provida. A button that
+  waits on the server keeps its label in place, hidden, with the loader over it,
+  so it never changes width.
 - **Copy is an icon,** never the word: a square button whose copy icon swaps to
   a tick in place, at once, so its width never changes.
 - **Commands** sit in one grey box with Copy, on one line, cut with an

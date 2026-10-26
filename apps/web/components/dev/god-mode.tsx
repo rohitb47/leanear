@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { hardGo, projectByKey, toast, useData } from "@/lib/store/store"
 import { api } from "@/trpc/client"
+import { Button } from "@/components/common/button"
 
 type Stats = Awaited<ReturnType<typeof api.dev.stats.query>>
 
@@ -173,9 +174,9 @@ function Action({
           {detail}
         </div>
       </div>
-      <button
+      <Button
         className={`btn sm${danger ? " danger" : ""}`}
-        disabled={busy}
+        loading={busy}
         onClick={async () => {
           if (danger && !asking) return setAsking(true)
           setBusy(true)
@@ -190,7 +191,7 @@ function Action({
         }}
       >
         {asking ? "Sure?" : label}
-      </button>
+      </Button>
     </div>
   )
 }

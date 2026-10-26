@@ -135,6 +135,70 @@ html.dragging * {
 .btn:active {
   transform: scale(0.97);
 }
+/* Loading: the label keeps its place, hidden, under the loader */
+.btn {
+  position: relative;
+}
+.btn-label {
+  display: inline-flex;
+  align-items: center;
+  gap: inherit;
+  transition: opacity 0.15s var(--ease-out);
+}
+.btn-label.hide {
+  opacity: 0;
+}
+.btn-spin {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.btn[aria-busy="true"] {
+  cursor: progress;
+}
+.btn[aria-busy="true"]:disabled {
+  opacity: 1;
+}
+
+/* Apple's activity indicator: the highlight walks round eight blades */
+.loader {
+  position: relative;
+  display: inline-block;
+  flex-shrink: 0;
+}
+.loader > span {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: 10.5%;
+  height: 27%;
+  margin-left: -5.25%;
+  border-radius: 9999px;
+  background-color: currentColor;
+  transform-origin: 50% 185.2%;
+  transform: rotate(calc(var(--i) * 45deg));
+  animation: loader-blade 1s linear infinite;
+  animation-delay: calc(var(--i) * 0.125s - 1s);
+}
+@keyframes loader-blade {
+  0% {
+    opacity: 1;
+  }
+  12% {
+    opacity: 0.72;
+  }
+  30% {
+    opacity: 0.4;
+  }
+  60% {
+    opacity: 0.22;
+  }
+  100% {
+    opacity: 0.15;
+  }
+}
 .btn:hover {
   box-shadow: inset 0 0 0 1px var(--line);
 }
@@ -1854,6 +1918,10 @@ textarea::placeholder {
   *::after {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
+  }
+  /* The loader still says "working", just slower, as Provida's does */
+  .loader > span {
+    animation-duration: 2s !important;
   }
 }
 .mdedit .ph {

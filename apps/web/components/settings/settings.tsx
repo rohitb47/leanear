@@ -25,6 +25,7 @@ import { KeyDialog } from "@/components/workspace/add-agent"
 import { InviteDialog } from "@/components/workspace/invite"
 import { PlanCard } from "@/components/workspace/plan"
 import { ago } from "@/lib/ui/format"
+import { Button } from "@/components/common/button"
 
 /** One project's settings: its name, its key, and deleting it. */
 export function ProjectSettings({ projectKey }: { projectKey: string }) {
@@ -73,7 +74,7 @@ export function Settings() {
                 <div>{d.me.name}</div>
                 <div className="sub">{d.me.email}</div>
               </div>
-              <button
+              <Button
                 className="btn sm"
                 onClick={async () => {
                   await authClient.signOut()
@@ -81,7 +82,7 @@ export function Settings() {
                 }}
               >
                 Sign out
-              </button>
+              </Button>
             </div>
           </div>
         </section>
@@ -380,7 +381,7 @@ function MembersSection({
                 </div>
               </div>
               <Copy text={link(i.token)} />
-              <button
+              <Button
                 className="btn bare sm"
                 onClick={() =>
                   act(() =>
@@ -389,7 +390,7 @@ function MembersSection({
                 }
               >
                 Revoke
-              </button>
+              </Button>
             </div>
           ))}
         <button className="set-row add" onClick={addAgent}>
@@ -565,9 +566,9 @@ function PlanSection() {
                   : `Renews ${date(b.paidUntil)}`}
             </div>
           </div>
-          <button
+          <Button
             className="btn sm"
-            disabled={busy}
+            loading={busy}
             onClick={async () => {
               setBusy(true)
               try {
@@ -579,7 +580,7 @@ function PlanSection() {
             }}
           >
             Billing
-          </button>
+          </Button>
         </div>
         {rows.map(([label, n, max]) => (
           <div className="set-row" key={label}>
@@ -617,7 +618,7 @@ function ArchivedSection() {
             <div className="who">
               <div>{p.name}</div>
             </div>
-            <button
+            <Button
               className="btn sm"
               onClick={async () => {
                 try {
@@ -631,7 +632,7 @@ function ArchivedSection() {
               }}
             >
               Unarchive
-            </button>
+            </Button>
           </div>
         ))}
       </div>

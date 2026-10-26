@@ -32,6 +32,7 @@ import { MdEditor } from "@/components/common/md-editor"
 import { Assignees } from "@/components/task/new-task"
 import { md } from "@/lib/ui/markdown"
 import { ago, copy } from "@/lib/ui/format"
+import { Button } from "@/components/common/button"
 
 /**
  * A task, in a dialog over the board. Click outside or press Escape to close
@@ -581,9 +582,9 @@ function Composer({ t, d }: { t: Task; d: Data }) {
         }
         autoComplete="off"
       />
-      <button className="btn" type="submit" disabled={busy || !v.trim()}>
+      <Button className="btn" type="submit" loading={busy} disabled={!v.trim()}>
         Send
-      </button>
+      </Button>
     </form>
   )
 }

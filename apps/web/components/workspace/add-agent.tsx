@@ -8,6 +8,7 @@ import { putMember, toast, useData } from "@/lib/store/store"
 import { Dialog } from "@/components/chrome/dialog"
 import { api } from "@/trpc/client"
 import { AGENT_NAME, Connect, PickTool } from "@/components/workspace/connect"
+import { Button } from "@/components/common/button"
 
 /**
  * Bring an agent: pick its tool, name it, get its key and the one line to
@@ -71,13 +72,14 @@ export function AddAgent({
             autoComplete="off"
             onChange={(e) => setName(e.target.value)}
           />
-          <button
+          <Button
             className="btn"
             type="submit"
-            disabled={busy || !shown.trim()}
+            loading={busy}
+            disabled={!shown.trim()}
           >
             Make its key
-          </button>
+          </Button>
         </form>
       )}
       {err && <div className="err">{err}</div>}

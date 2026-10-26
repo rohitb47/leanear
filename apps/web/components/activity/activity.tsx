@@ -17,6 +17,7 @@ import { Av } from "@/components/common/avatar"
 import { Seg } from "@/components/common/seg"
 import { I } from "@/components/common/icons"
 import { ago } from "@/lib/ui/format"
+import { Button } from "@/components/common/button"
 
 const KINDS: Record<LogEntry["kind"], string> = {
   task: "Tasks",
@@ -275,9 +276,9 @@ function Trash({ projectKey }: { projectKey?: string }) {
                   {when(it.deletedAt, true)}
                 </div>
               </div>
-              <button className="btn sm" onClick={() => bring(it)}>
+              <Button className="btn sm" onClick={() => bring(it)}>
                 Restore
-              </button>
+              </Button>
             </div>
           )
         })}

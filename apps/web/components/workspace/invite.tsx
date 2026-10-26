@@ -6,6 +6,7 @@ import { api } from "@/trpc/client"
 import { Dialog } from "@/components/chrome/dialog"
 import { Cmd } from "@/components/workspace/connect"
 import { changedMembers } from "@/components/workspace/add-agent"
+import { Button } from "@/components/common/button"
 
 /**
  * Invite someone. With email set up: type their address and it's sent, with
@@ -121,9 +122,9 @@ export function InviteDialog({
             <button className="btn bare sm" onClick={close}>
               Cancel
             </button>
-            <button className="btn accent sm" disabled={busy} onClick={make}>
+            <Button className="btn accent sm" loading={busy} onClick={make}>
               {d.mail ? "Send invite" : "Make the link"}
-            </button>
+            </Button>
           </>
         )}
       </div>

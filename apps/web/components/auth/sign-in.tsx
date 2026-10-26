@@ -3,6 +3,7 @@
 import { GitHubIcon } from "@leanear/ui/mark"
 import { useState } from "react"
 import { authClient } from "@/lib/auth/client"
+import { Button } from "@/components/common/button"
 
 /** GitHub, the one way in. */
 export function SignInForm({ next }: { next: string }) {
@@ -10,9 +11,9 @@ export function SignInForm({ next }: { next: string }) {
   const [err, setErr] = useState<string | null>(null)
   return (
     <>
-      <button
+      <Button
         className="btn accent wide github"
-        disabled={busy}
+        loading={busy}
         onClick={async () => {
           setBusy(true)
           setErr(null)
@@ -27,7 +28,7 @@ export function SignInForm({ next }: { next: string }) {
         }}
       >
         <GitHubIcon size={17} /> Continue with GitHub
-      </button>
+      </Button>
       {err && <p className="err">{err}</p>}
     </>
   )

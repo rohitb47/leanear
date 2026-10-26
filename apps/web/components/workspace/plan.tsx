@@ -7,6 +7,7 @@ import { hardGo, toast, useData } from "@/lib/store/store"
 import { api } from "@/trpc/client"
 import { Flow } from "@/components/chrome/flow"
 import { I } from "@/components/common/icons"
+import { Button } from "@/components/common/button"
 
 const GETS = [
   "10 projects, unlimited tasks",
@@ -58,9 +59,9 @@ export function PlanCard({ back }: { back?: string }) {
         ))}
       </ul>
       {back !== undefined && (
-        <button className="btn accent wide" disabled={busy} onClick={start}>
+        <Button className="btn accent wide" loading={busy} onClick={start}>
           Start for ${price} a month
-        </button>
+        </Button>
       )}
       <p className="fine">
         For the whole workspace, not a seat. Cancel any time in Settings.
@@ -79,7 +80,7 @@ export function Paywall() {
     <Flow
       foot={
         <>
-          <button
+          <Button
             className="btn bare"
             onClick={async () => {
               await authClient.signOut()
@@ -87,10 +88,10 @@ export function Paywall() {
             }}
           >
             Sign out
-          </button>
-          <button className="btn accent" disabled={busy} onClick={start}>
+          </Button>
+          <Button className="btn accent" loading={busy} onClick={start}>
             Start for ${price} a month
-          </button>
+          </Button>
         </>
       }
     >
