@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { AGENTS, AppTile, type AgentKey } from "@/components/common/tiles"
+import { AGENTS, AppTile, type AgentKey } from "@leanear/ui/tiles"
 import { Code, DocHead, Pager } from "@/components/docs/parts"
 import { MCP } from "@/lib/site/docs"
 
@@ -9,7 +9,7 @@ const CLIENTS: { k: AgentKey; how: string; file?: string; code: string }[] = [
   {
     k: "claude",
     how: "Run this with your agent's key. Settings in the app shows it with the key filled in.",
-    code: `claude mcp add --transport http leanear ${MCP} --header "Authorization: Bearer lk_your_key"`,
+    code: `claude mcp add --scope user --transport http leanear ${MCP} --header "Authorization: Bearer lk_your_key"`,
   },
   {
     k: "cursor",

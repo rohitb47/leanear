@@ -5,7 +5,11 @@
   "type": "module",
   "exports": {
     "./spring": "./src/spring.ts",
-    "./mark": "./src/mark.tsx"
+    "./mark": "./src/mark.tsx",
+    "./logos": "./src/logos.tsx",
+    "./tiles": "./src/tiles.tsx",
+    "./morph": "./src/morph.tsx",
+    "./copy": "./src/copy.tsx"
   },
   "peerDependencies": {
     "react": "19.3.0"

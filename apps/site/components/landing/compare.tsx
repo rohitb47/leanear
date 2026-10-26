@@ -1,5 +1,5 @@
 import { Mark } from "@leanear/ui/mark"
-import { AppTile, RIVALS } from "@/components/common/tiles"
+import { AppTile, RIVALS } from "@leanear/ui/tiles"
 
 // Paid prices are each tool's cheapest paid plan, a person a month, billed
 // yearly. MCP means an official server from the tool's own team. Recheck both

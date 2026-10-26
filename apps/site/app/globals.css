@@ -456,8 +456,7 @@ a {
   color: var(--ink);
 }
 /* Selection pills that slide between items (Motion layoutId) */
-.tabs button,
-.ctx-list button {
+.tabs button {
   position: relative;
 }
 .pill-bg {
@@ -467,37 +466,9 @@ a {
   border-radius: inherit;
   background: var(--tint2);
 }
-.tabs button > :not(.pill-bg),
-.ctx-list button > :not(.pill-bg) {
+.tabs button > :not(.pill-bg) {
   position: relative;
   z-index: 1;
-}
-.bar .actions {
-  justify-self: end;
-}
-.act {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  overflow: hidden;
-  white-space: nowrap;
-  height: 28px;
-  padding: 0 10px;
-  border: 0;
-  border-radius: 8px;
-  background: var(--tint2);
-  color: var(--ink);
-  font: inherit;
-  font-size: 13px;
-  line-height: 1;
-  cursor: pointer;
-  transition: background-color 0.15s;
-}
-.act:hover {
-  background: color-mix(in srgb, var(--tint2) 60%, var(--ink) 12%);
-}
-.act:active {
-  transform: scale(0.97);
 }
 /* Settings: one quiet column of grey cards, a row per field or member */
 .set {
@@ -586,153 +557,6 @@ a {
   display: none;
 }
 
-/* Context: the project's .md files, a list beside the open file */
-.ctx {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr);
-  height: 540px;
-}
-.ctx-list {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--s3);
-  border-right: 1px solid var(--line);
-  overflow-y: auto;
-  scrollbar-width: none;
-}
-.ctx-list button {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  padding: 8px 10px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: var(--muted);
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-  transition:
-    color 0.15s,
-    background-color 0.15s;
-}
-.ctx-list button:hover {
-  color: var(--ink);
-}
-.ctx-list button.on {
-  color: var(--ink);
-}
-.ctx-list svg {
-  flex: none;
-}
-.ctx .fn {
-  font-family: var(--mono);
-  font-size: 12.5px;
-}
-.ctx-list .when {
-  margin-left: auto;
-  font-family: var(--mono);
-  font-size: 11px;
-  color: var(--pale);
-}
-.ctx-doc {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.ctx-head {
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  height: 52px;
-  padding: 0 var(--s5);
-  border-bottom: 1px solid var(--line);
-}
-.ctx-head .by {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  margin-left: auto;
-  font-size: 12.5px;
-  color: var(--muted);
-}
-.ctx-head .av {
-  width: 16px;
-  height: 16px;
-  margin: 0;
-}
-/* The editor: a coloured layer drawn exactly under a clear textarea */
-.ctx-edit {
-  position: relative;
-  flex: 1;
-}
-.ctx-edit pre,
-.ctx-edit textarea {
-  position: absolute;
-  inset: 0;
-  margin: 0;
-  padding: var(--s5);
-  border: 0;
-  font-family: var(--mono);
-  font-size: 13px;
-  line-height: 1.8;
-  letter-spacing: 0;
-  white-space: pre-wrap;
-  overflow-wrap: break-word;
-  overflow: auto;
-  scrollbar-width: none;
-}
-.ctx-edit pre {
-  color: var(--muted);
-  pointer-events: none;
-}
-.ctx-edit textarea {
-  outline: 0;
-  resize: none;
-  background: none;
-  color: transparent;
-  caret-color: var(--ink);
-}
-.ctx-edit textarea::selection {
-  color: transparent;
-  background: rgba(255, 255, 255, 0.16);
-}
-.md-h {
-  color: var(--ink);
-  font-weight: 520;
-}
-.md-mark {
-  color: #ff8a65;
-}
-.md-li {
-  color: #ff8a65;
-}
-.md-code {
-  color: #7ee0b5;
-}
-.md-bold {
-  color: #f6c177;
-}
-@media (max-width: 760px) {
-  /* Phones: the files become one row that scrolls sideways, over the editor */
-  .ctx {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: auto minmax(0, 1fr);
-  }
-  .ctx-list button {
-    flex: none;
-  }
-  .ctx-list {
-    flex-direction: row;
-    overflow-x: auto;
-    border-right: 0;
-    border-bottom: 1px solid var(--line);
-  }
-  .ctx-list .when {
-    display: none;
-  }
-}
 /* The board: columns without dividers, each task its own card */
 .board {
   display: grid;
@@ -931,14 +755,6 @@ a {
   .bar .tabs {
     justify-self: center;
   }
-  .act {
-    width: 28px;
-    padding: 0;
-    justify-content: center;
-  }
-  .act > span {
-    display: none;
-  }
 }
 
 /* The morph: one thing taking a new value */
@@ -1116,27 +932,6 @@ a {
 }
 .cmd-wrap {
   text-align: center;
-}
-.files {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--s3);
-}
-.file {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--s2);
-  height: 44px;
-  padding: 0 var(--s4);
-  border-radius: 12px;
-  background: var(--paper);
-  box-shadow: var(--panel);
-  font-family: var(--mono);
-  font-size: 13.5px;
-}
-.file svg {
-  color: var(--muted);
 }
 .cmd-wrap .more {
   display: inline-block;

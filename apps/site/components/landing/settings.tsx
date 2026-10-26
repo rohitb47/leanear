@@ -2,11 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "motion/react"
-import {
-  AGENTS as TILES,
-  AppTile,
-  type AgentKey,
-} from "@/components/common/tiles"
+import { AGENTS as TILES, AppTile, type AgentKey } from "@leanear/ui/tiles"
 
 // The Settings tab: the project's name and key, and who's in it. Agents are
 // members like Rohit, each with its own key; New agent adds the next one.
@@ -21,9 +17,7 @@ const AGENTS: Agent[] = [
 
 export function useSettings() {
   const [name, setName] = useState("Leanear")
-  const [count, setCount] = useState(2)
-  const add = () => setCount((n) => Math.min(n + 1, AGENTS.length))
-  return { name, setName, agents: AGENTS.slice(0, count), add }
+  return { name, setName, agents: AGENTS.slice(0, 2) }
 }
 
 export function Settings({ state }: { state: ReturnType<typeof useSettings> }) {

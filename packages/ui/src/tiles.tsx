@@ -1,4 +1,4 @@
-import { Logo, type LogoKey } from "@/components/common/logos"
+import { Logo, type LogoKey } from "./logos"
 
 // App-icon tiles for the agents that work with Leanear, in their own colours.
 type Tile = {

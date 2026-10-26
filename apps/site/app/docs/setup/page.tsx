@@ -8,10 +8,9 @@ curl -fsSL https://raw.githubusercontent.com/rohitb47/leanear/main/skills/leanea
   -o .claude/skills/leanear-setup/SKILL.md`
 
 const PROMPT = `Set up Leanear for this codebase, in my Leanear project.
-1. Read the repo: README, build files, folder layout, existing agent files and docs.
-2. Write CLAUDE.md and AGENTS.md (and DESIGN.md if the code has a clear look) in the project's Context with put_file. Only what's true in the code. If a file exists, add to it; never overwrite.
-3. Turn TODO, FIXME and HACK comments, open GitHub issues and any roadmap into tasks with create_task: a short title, a type, and where it came from. Check list_tasks first so nothing is duplicated. About 30 at most.
-4. Move the five that matter most to Todo and say why in a comment.
+1. Read the repo: README, build files, folder layout, its own CLAUDE.md and AGENTS.md, and docs.
+2. Turn TODO, FIXME and HACK comments, open GitHub issues and any roadmap into tasks with create_task: a short title, a type, and where it came from. Check list_tasks first so nothing is duplicated. About 30 at most.
+3. Move the five that matter most to Todo and say why in a comment.
 Don't change any code, commit or push. Tell me what you made.`
 
 export default function Setup() {
@@ -19,7 +18,7 @@ export default function Setup() {
     <>
       <DocHead
         href="/docs/setup"
-        lead="Already have a codebase? Let your agent read it and set up Leanear for you: the project's context files and its first tasks, from what's really in the code."
+        lead="Already have a codebase? Let your agent read it and fill your board: its first tasks, from what's really in the code."
       />
 
       <h2>Before you start</h2>
@@ -53,11 +52,9 @@ export default function Setup() {
 
       <h2>What it does</h2>
       <Steps>
-        <li>Reads the repo, its docs and any agent files it already has.</li>
         <li>
-          Writes <code className="inline">CLAUDE.md</code> and{" "}
-          <code className="inline">AGENTS.md</code> in the project&apos;s
-          Context, adding to what&apos;s there rather than replacing it.
+          Reads the repo, its docs and its own{" "}
+          <code className="inline">CLAUDE.md</code>, and follows it.
         </li>
         <li>
           Turns TODOs, FIXMEs, open GitHub issues and your roadmap into tasks,
@@ -67,7 +64,7 @@ export default function Setup() {
       </Steps>
       <p className="note">
         It never changes code, commits or pushes, and it never writes secrets
-        into a file or a task.
+        into a task.
       </p>
       <Pager href="/docs/setup" />
     </>

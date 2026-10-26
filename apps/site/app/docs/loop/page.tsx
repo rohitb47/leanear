@@ -13,10 +13,10 @@ export default function Loop() {
       <Code code="Work through my Leanear tasks." file="Prompt" />
       <Steps>
         <li>
-          It calls <code className="inline">next_task</code> and reads the
-          project&apos;s context with <code className="inline">get_file</code>.
+          It calls <code className="inline">next_task</code> and moves the task
+          to Doing.
         </li>
-        <li>It does the work in your repo.</li>
+        <li>It does the work in your repo, following your CLAUDE.md.</li>
         <li>
           It writes what it did with <code className="inline">comment</code> and
           moves the task to Done with <code className="inline">move_task</code>,

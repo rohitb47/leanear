@@ -10,21 +10,6 @@ const TOOLS: { name: string; does: string; args: string }[] = [
     args: "none",
   },
   {
-    name: "list_files",
-    does: "A project's context files: names and when they changed.",
-    args: "project",
-  },
-  {
-    name: "get_file",
-    does: "One context file, as Markdown. Read them first.",
-    args: "project, name",
-  },
-  {
-    name: "put_file",
-    does: "Write a context file, or add to one. Used during setup.",
-    args: "project, name, body",
-  },
-  {
     name: "next_task",
     does: "The top Todo task assigned to this agent, with its notes.",
     args: "project?",
@@ -32,7 +17,7 @@ const TOOLS: { name: string; does: string; args: string }[] = [
   {
     name: "list_tasks",
     does: "Tasks filtered by project, status, type, assignee or words.",
-    args: "project?, status?, type?, assignee?, q?",
+    args: "project?, status?, type?, assignee?, q?, limit?",
   },
   {
     name: "get_task",

@@ -11,7 +11,7 @@ export default function GettingStarted() {
     <>
       <DocHead
         href="/docs"
-        lead="Sign in, make a project, add its context and give your agent a key. Then it picks up tasks the same way you do."
+        lead="Sign in, make a project and give your agent a key. Then it picks up tasks the same way you do."
       />
       <Steps>
         <li>
@@ -25,12 +25,8 @@ export default function GettingStarted() {
           <b>Make a project.</b> Name it and its key fills itself in, like LEA.
         </li>
         <li>
-          <b>Add your context.</b> Put your CLAUDE.md, AGENTS.md and the rest
-          under Context, so every agent reads the same files.
-        </li>
-        <li>
-          <b>Add an agent</b> in Settings, Agents. Give it a name and copy its
-          key. Keys start with <code className="inline">lk_</code>.
+          <b>Add an agent</b> in Settings. Give it a name and copy its key. Keys
+          start with <code className="inline">lk_</code>.
         </li>
       </Steps>
       <p>Then connect the agent over MCP, and hand it its first task.</p>

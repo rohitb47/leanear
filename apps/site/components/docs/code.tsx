@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { Copy } from "@/components/common/copy"
+import { Copy } from "@leanear/ui/copy"
 
 // A code block with a header: its file name, a wrap toggle and Copy. Long
 // lines scroll sideways until wrap is on.

@@ -1,15 +1,15 @@
 import Link from "next/link"
 import { Board } from "@/components/landing/board"
-import { Copy } from "@/components/common/copy"
+import { Copy } from "@leanear/ui/copy"
 import { Compare } from "@/components/landing/compare"
 import { DotField } from "@/components/landing/dot-field"
 import { Faq } from "@/components/landing/faq"
 import { HeroWords } from "@/components/landing/hero-words"
-import { Logo } from "@/components/common/logos"
+import { Logo } from "@leanear/ui/logos"
 import { Mark } from "@leanear/ui/mark"
 import { SiteFoot, SiteNav } from "@/components/chrome/site"
 import { Reveal } from "@/components/common/reveal"
-import { AGENTS, AppTile } from "@/components/common/tiles"
+import { AGENTS, AppTile } from "@leanear/ui/tiles"
 import { APP, X, stars } from "@/lib/site/links"
 
 // Each card's drawing has a quiet idle loop that acts out its sentence. The
@@ -17,7 +17,7 @@ import { APP, X, stars } from "@/lib/site/links"
 const FIVE = [
   {
     title: "Projects",
-    text: "One per product. A name, a short key and the .md files your agents read first.",
+    text: "One per product. A name and a short key that starts every task id, like LEA-12.",
     art: (
       <div className="idle idle-projects">
         <span className="chip">
@@ -118,8 +118,6 @@ const CUT = [
   "Seats",
 ]
 
-const CONTEXT = ["CLAUDE.md", "AGENTS.md", "DESIGN.md", "SPEC.md"]
-
 const PLANS = [
   {
     name: "Cloud",
@@ -130,7 +128,7 @@ const PLANS = [
       "10 projects, unlimited tasks",
       "Up to 20 people",
       "5 agents",
-      "Every MCP tool and your context",
+      "Every MCP tool",
     ],
     cta: "Get started",
     href: APP,
@@ -172,12 +170,8 @@ const FAQ = [
     a: "Any coding agent that speaks MCP and can send a key: Claude Code, Cursor, Codex, Copilot, Windsurf. Each gets its own name and key, so you always see who did what.",
   },
   {
-    q: "What is Context?",
-    a: "Your project's .md files, like CLAUDE.md and AGENTS.md, kept in Leanear instead of every repo. Edit them once and every agent reads the latest. Pull them into a repo when you want them on disk.",
-  },
-  {
     q: "I already have a codebase. Can I bring it?",
-    a: "Yes. Install the setup skill in Claude Code, or paste one prompt into any agent. It reads the repo, writes your context files and turns TODOs and open issues into your first tasks. It never touches your code.",
+    a: "Yes. Install the setup skill in Claude Code, or paste one prompt into any agent. It reads the repo and turns TODOs and open issues into your first tasks. It never touches your code.",
   },
   {
     q: "What does it cost?",
@@ -343,40 +337,10 @@ export default async function Home() {
           </div>
         </section>
 
-        <section id="context" className="section" style={{ paddingTop: 0 }}>
-          <div className="wrap">
-            <Reveal className="head">
-              <h2 className="h2">Your .md files live here now</h2>
-              <p className="sub">
-                Edit them once in Leanear. Every agent on the team reads the
-                latest. No copies to keep in sync.
-              </p>
-            </Reveal>
-            <Reveal className="files">
-              {CONTEXT.map((f) => (
-                <span key={f} className="file">
-                  <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden>
-                    <path
-                      d="M3.5 1.75h4.6l2.4 2.4v8.1H3.5z"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.3"
-                      strokeLinejoin="round"
-                    />
-                  </svg>
-                  {f}
-                </span>
-              ))}
-            </Reveal>
-            <Reveal className="cmd-wrap">
-              <Link className="more" href="/docs/context">
-                How Context works
-              </Link>
-            </Reveal>
-          </div>
-        </section>
-
-        <section className="section" style={{ paddingBottom: 0 }}>
+        <section
+          className="section"
+          style={{ paddingTop: 0, paddingBottom: 0 }}
+        >
           <div className="wrap">
             <Reveal className="head">
               <h2 className="h2">Not a fair comparison</h2>

@@ -6,6 +6,8 @@ const nextConfig: NextConfig = {
   transpilePackages: ["@leanear/ui"],
   async redirects() {
     return [
+      // A docs page that no longer exists; old links land on the start of the docs.
+      { source: "/docs/context", destination: "/docs", permanent: true },
       {
         source: "/:path*",
         has: [{ type: "host", value: "www.leanear.app" }],

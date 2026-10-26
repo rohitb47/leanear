@@ -7,7 +7,6 @@ export const DOCS: DocPage[] = [
   { href: "/docs", title: "Getting started", group: "Guides" },
   { href: "/docs/setup", title: "Bring a codebase", group: "Guides" },
   { href: "/docs/mcp", title: "MCP", group: "Guides" },
-  { href: "/docs/context", title: "Context", group: "Guides" },
   { href: "/docs/loop", title: "The loop", group: "Guides" },
   { href: "/docs/tools", title: "Tools", group: "Reference" },
   { href: "/docs/keys", title: "Keys", group: "Reference" },

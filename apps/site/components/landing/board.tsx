@@ -9,10 +9,9 @@ import {
 } from "react"
 import { Mark } from "@leanear/ui/mark"
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
-import { Logo } from "@/components/common/logos"
-import { Context, useContextFiles } from "@/components/landing/context"
+import { Logo } from "@leanear/ui/logos"
 import { Settings, useSettings } from "@/components/landing/settings"
-import { Morph } from "@/components/common/morph"
+import { Morph } from "@leanear/ui/morph"
 import { project, set, spring } from "@leanear/ui/spring"
 
 type Status = "backlog" | "todo" | "doing" | "done"
@@ -56,7 +55,7 @@ const START: Task[] = [
   },
   {
     id: "LEA-27",
-    title: "Starter .md files for new projects",
+    title: "Mention a teammate in a comment",
     type: "Idea",
     status: "backlog",
     who: "rohit",
@@ -213,16 +212,14 @@ type Drag = {
   landing: boolean
 }
 
-const LABEL = { board: "Board", context: "Context", settings: "Settings" }
-const ACTION = { board: "New task", context: "New file", settings: "New agent" }
+const LABEL = { board: "Board", settings: "Settings" }
 
 export function Board() {
   const [tasks, setTasks] = useState(START)
   const [dragId, setDragId] = useState<string | null>(null)
   const [liveId, setLiveId] = useState<string | null>(null)
   const [feed, setFeed] = useState<string | null>(null)
-  const [view, setView] = useState<"board" | "context" | "settings">("board")
-  const ctx = useContextFiles()
+  const [view, setView] = useState<"board" | "settings">("board")
   const settings = useSettings()
   // Cards fade in only when added later; on load the board rises as one.
   const [mounted, setMounted] = useState(false)
@@ -274,21 +271,6 @@ export function Board() {
       )
     }
   }, [tasks])
-
-  const addTask = () =>
-    update((list) => {
-      const n = Math.max(...list.map((t) => Number(t.id.split("-")[1]))) + 1
-      return [
-        {
-          id: `LEA-${n}`,
-          title: "New task",
-          type: "Feature",
-          status: "backlog",
-          who: "rohit",
-        },
-        ...list,
-      ]
-    })
 
   // Where would a point drop? Column by x, place by row centres.
   const slotAt = (
@@ -511,7 +493,7 @@ export function Board() {
             <span className="mono">LEA</span>
           </div>
           <div className="tabs" role="tablist">
-            {(["board", "context", "settings"] as const).map((v) => (
+            {(["board", "settings"] as const).map((v) => (
               <button
                 key={v}
                 role="tab"
@@ -525,41 +507,6 @@ export function Board() {
                 <span className="lbl">{LABEL[v]}</span>
               </button>
             ))}
-          </div>
-          <div className="actions">
-            <motion.button
-              layout
-              className="act"
-              aria-label={ACTION[view]}
-              style={{ borderRadius: 8 }}
-              onClick={() =>
-                view === "board"
-                  ? addTask()
-                  : view === "context"
-                    ? ctx.add()
-                    : settings.add()
-              }
-            >
-              <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden>
-                <path
-                  d="M6 1.5v9M1.5 6h9"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <AnimatePresence mode="popLayout" initial={false}>
-                <motion.span
-                  key={view}
-                  layout="position"
-                  initial={{ opacity: 0, filter: "blur(3px)" }}
-                  animate={{ opacity: 1, filter: "blur(0px)" }}
-                  exit={{ opacity: 0, filter: "blur(3px)" }}
-                >
-                  {ACTION[view]}
-                </motion.span>
-              </AnimatePresence>
-            </motion.button>
           </div>
         </div>
         <div className="board" ref={boardRef} hidden={view !== "board"}>
@@ -605,7 +552,6 @@ export function Board() {
             )
           })}
         </div>
-        {view === "context" && <Context state={ctx} />}
         {view === "settings" && <Settings state={settings} />}
         <AnimatePresence>
           {feed && view === "board" && (
