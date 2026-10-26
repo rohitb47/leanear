@@ -68,4 +68,6 @@ in code only.
 - **Delete rather than disable.** Something out of scope goes entirely. git remembers.
 - **Write the rule, not the inventory**, in this file and in `docs/`.
 - Deploys: Vercel project `leanear` (root `apps/site`, leanear.app) and `leanear-app`
-  (root `apps/web`, cloud.leanear.app), both from `main`.
+  (root `apps/web`, cloud.leanear.app), both from `main`. The app's functions run in
+  Sydney (`apps/web/vercel.json`), beside the Neon database: keep them next to it, since
+  every query crosses the distance between them.
