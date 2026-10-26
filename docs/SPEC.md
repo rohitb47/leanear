@@ -80,11 +80,10 @@ One thing per screen, sliding the way you're going, with progress dots.
 
 ### 3.3 Home
 
-The workspace's name and a card per project: its key and name, how many tasks in each
-status, and the faces of whoever has something in Doing (agents with their ring). New
-project is the last card. Under them, **On your plate**: Todo and Doing across every
-project, yours and your agents', Doing first; each opens its task. Then **Lately**, the
-last few lines of activity, and a link to all of it.
+Two lists, in the grey rows Settings uses. **Projects**: each one's key and name, the
+faces of whoever has something in Doing (agents with their ring) and how many tasks are
+open; New project last. **On your plate**: Todo and Doing across every project, yours and
+your agents', Doing first; each opens its task.
 
 ### 3.4 Board
 
@@ -141,14 +140,19 @@ Restore. A task comes back once its project is back; a project once its key is f
 
 ### 3.8 Settings
 
-A project's Settings is just the project: name, key (fixed once there are tasks), delete
-when empty. The workspace's Settings, at Home, is one column of grey cards:
+A project's Settings is just the project: name, key (fixed once there are tasks), Archive
+and Delete (when empty), both asking first. Archiving keeps everything but takes the
+project out of Home, the menus and the plan's count, and its tasks out of agents' reach,
+until it's unarchived. You can't archive the last open project. The workspace's Settings, at Home, is one column of grey cards:
 
 - **Members**: people with role, agents with their masked key and when they last called
-  in, open invite links. Add an agent opens a dialog (the same flow as onboarding), and
-  so does Invite someone (owners; it makes a link valid 7 days). A ⋯ menu per member:
-  new key (shown once in a dialog), revoke a key, make owner, remove; revoking and
-  removing ask first.
+  in, open invites (the email they went to, or the link). Add an agent opens a dialog (the
+  same flow as onboarding), and so does Invite someone (owners): with Resend set up you
+  type one email and it's sent, the link shown too; without, it makes a link. Either works
+  7 days. A ⋯ menu per agent: new key (shown once in a dialog; it retires that agent's
+  keys never used), revoke unused keys, revoke all keys, remove. Per person: make owner,
+  remove. Revoking and removing ask first.
+- **Archived projects**, when there are some, each with Unarchive.
 - **Plan** (Cloud): price, renewal date, how full the workspace is, Billing (Stripe's
   portal for the card, invoices and cancelling).
 - **Workspace**: name. **You**: sign out. Switching workspace is in your face's menu.
@@ -227,9 +231,9 @@ workspaces   id, name, created_at, stripe_customer?, subscription?, billing_stat
 members      id, workspace_id, kind(person|agent), user_id?, name, avatar_url?, role(owner|member),
              removed_at?, updated_at
 agent_keys   id, member_id, hash, hint, last_used_at?, revoked_at?, created_at
-invites      id, workspace_id, token, created_by, expires_at, revoked_at?
+invites      id, workspace_id, token, email?, created_by, expires_at, revoked_at?
 projects     id, workspace_id, key, name, seq, created_at, updated_at, deleted_at?,
-             deleted_by?
+             deleted_by?, archived_at?, archived_by?
 tasks        id, project_id, workspace_id, number, title, notes, type, status, assignee_id?,
              position(float), created_by, created_at, updated_at, deleted_at?, deleted_by?
 activity     id, task_id, workspace_id, actor_id, kind, data(jsonb), body?, created_at
@@ -269,20 +273,21 @@ new task takes `min - 1` in its column and a drop takes the midpoint of its neig
 
 ## 9. Settings (environment)
 
-| Variable                     | Needed | What                                                                                                           |
-| ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`               | Always | Postgres connection string. Locally the Docker one; in production Neon's pooled string.                        |
-| `BETTER_AUTH_SECRET`         | Always | 32+ random bytes (`openssl rand -base64 32`). Signs sessions.                                                  |
-| `PUBLIC_URL`                 | Always | Where the app runs, like `https://cloud.leanear.app`. Better Auth's base URL and the MCP URL shown in the app. |
-| `GITHUB_ID`, `GITHUB_SECRET` | Always | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github`                                            |
-| `STRIPE_SECRET_KEY`          | Cloud  | Stripe secret or restricted key. Turns on the plan and the caps.                                               |
-| `STRIPE_WEBHOOK_SECRET`      | Cloud  | Signing secret of the webhook at `<PUBLIC_URL>/api/stripe`.                                                    |
+| Variable                       | Needed   | What                                                                                                           |
+| ------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`                 | Always   | Postgres connection string. Locally the Docker one; in production Neon's pooled string.                        |
+| `BETTER_AUTH_SECRET`           | Always   | 32+ random bytes (`openssl rand -base64 32`). Signs sessions.                                                  |
+| `PUBLIC_URL`                   | Always   | Where the app runs, like `https://cloud.leanear.app`. Better Auth's base URL and the MCP URL shown in the app. |
+| `GITHUB_ID`, `GITHUB_SECRET`   | Always   | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github`                                            |
+| `STRIPE_SECRET_KEY`            | Cloud    | Stripe secret or restricted key. Turns on the plan and the caps.                                               |
+| `STRIPE_WEBHOOK_SECRET`        | Cloud    | Signing secret of the webhook at `<PUBLIC_URL>/api/stripe`.                                                    |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Optional | Resend, for invites by email. Without them invites are links to copy.                                          |
 
 There are no migrations: `pnpm db:push` makes the database match `prisma/schema.prisma`.
 
 ## 10. Out of scope for now
 
-Email (invites are links), sign-in other than GitHub, notifications, MCP OAuth sign-in (so
+Email beyond invites, sign-in other than GitHub, notifications, MCP OAuth sign-in (so
 ChatGPT and Gemini connectors wait; header-based clients work today), GitHub issue sync,
 mobile apps, public boards, file attachments other than images, a light theme.
 

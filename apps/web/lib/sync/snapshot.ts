@@ -2,6 +2,7 @@ import "server-only"
 import { getSession, origin } from "@/lib/auth/session"
 import { billing } from "@/lib/billing/billing"
 import { isGodMode } from "@/lib/dev/god-mode"
+import { mailOn } from "@/lib/email/send"
 import { sync } from "./sync"
 import type { Snapshot } from "./types"
 
@@ -25,5 +26,6 @@ export async function snapshot(): Promise<Snapshot | null> {
     mcpUrl: `${await origin()}/mcp`,
     billing: await billing(s.workspace.id),
     god: isGodMode(),
+    mail: mailOn(),
   }
 }

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { switchWorkspace } from "@/lib/auth/session"
 import { sync } from "@/lib/sync/sync"
-import { addAgent, newKey, revokeKey } from "@/lib/workspace/agents"
+import { addAgent, newKey, revokeKeys } from "@/lib/workspace/agents"
 import { createInvite, revokeInvite } from "@/lib/workspace/invites"
 import { makeOwner, removeMember, renameMember } from "@/lib/workspace/members"
 import { renameWorkspace, settingsData } from "@/lib/workspace/workspace"
@@ -41,9 +41,9 @@ export const workspaceRouter = createTRPCRouter({
     .input(z.object({ memberId }))
     .mutation(({ ctx, input }) => newKey(ctx.c, input)),
 
-  revokeKey: workspaceProcedure
-    .input(z.object({ keyId: z.string() }))
-    .mutation(({ ctx, input }) => revokeKey(ctx.c, input)),
+  revokeKeys: workspaceProcedure
+    .input(z.object({ memberId, unused: z.boolean() }))
+    .mutation(({ ctx, input }) => revokeKeys(ctx.c, input)),
 
   renameMember: workspaceProcedure
     .input(z.object({ memberId, name: z.string() }))
@@ -57,7 +57,9 @@ export const workspaceRouter = createTRPCRouter({
     .input(z.object({ memberId }))
     .mutation(({ ctx, input }) => makeOwner(ctx.c, input)),
 
-  createInvite: workspaceProcedure.mutation(({ ctx }) => createInvite(ctx.c)),
+  createInvite: workspaceProcedure
+    .input(z.object({ email: z.string().optional() }).optional())
+    .mutation(({ ctx, input }) => createInvite(ctx.c, input ?? {})),
 
   revokeInvite: workspaceProcedure
     .input(z.object({ inviteId: z.string() }))

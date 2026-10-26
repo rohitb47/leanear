@@ -19,7 +19,9 @@ export type Data = Omit<
   "members" | "projects" | "tasks" | "recent" | "activity"
 > & {
   members: Record<string, Member>
+  /** Open projects only. Archived ones wait in `archived`, out of every list. */
   projects: Record<string, Project>
+  archived: Record<string, Project>
   tasks: Record<string, Task>
   activity: Record<string, Activity[]>
 }
@@ -46,7 +48,8 @@ export function makeStore(s: Snapshot): Store {
     state: {
       ...s,
       members: byId(s.members),
-      projects: byId(s.projects),
+      projects: byId(s.projects.filter((p) => !p.archived)),
+      archived: byId(s.projects.filter((p) => p.archived)),
       tasks: byId(s.tasks),
       activity: s.activity ? { [s.activity.taskId]: s.activity.items } : {},
     },
@@ -88,7 +91,9 @@ export function applySync(s: Sync) {
     s.tasks,
     (t) => inflight.has(t.id) || older(t, d.tasks[t.id])
   )
-  const projects = merge(d.projects, s.projects)
+  // A project is in one of the two maps; the other sees it as gone.
+  const projects = merge(d.projects, s.projects.map(open))
+  const archived = merge(d.archived, s.projects.map(shut))
   const members = merge(d.members, s.members)
   const same = (a: unknown, b: unknown) =>
     JSON.stringify(a) === JSON.stringify(b)
@@ -99,6 +104,7 @@ export function applySync(s: Sync) {
   if (
     tasks === d.tasks &&
     projects === d.projects &&
+    archived === d.archived &&
     members === d.members &&
     activity === d.activity
   )
@@ -109,11 +115,16 @@ export function applySync(s: Sync) {
       cursor: s.cursor,
       tasks,
       projects,
+      archived,
       members,
       activity,
     }))
   if (s.recent.length) feedSubs.forEach((f) => f(s.recent))
 }
+
+/** A project as the open map sees it, and as the archived one does. */
+const open = (p: Project) => (p.archived ? { ...p, deleted: true } : p)
+const shut = (p: Project) => (p.archived ? p : { ...p, deleted: true })
 
 /**
  * Rows from the server laid over what we hold: the same object back when
@@ -149,12 +160,11 @@ export function putTask(t: Task) {
   })
 }
 export function putProject(p: Project) {
-  update((d) => {
-    const projects = { ...d.projects }
-    if (p.deleted) delete projects[p.id]
-    else projects[p.id] = p
-    return { ...d, projects }
-  })
+  update((d) => ({
+    ...d,
+    projects: merge(d.projects, [open(p)]),
+    archived: merge(d.archived, [shut(p)]),
+  }))
 }
 export function setBilling(billing: Data["billing"]) {
   update((d) => ({ ...d, billing }))

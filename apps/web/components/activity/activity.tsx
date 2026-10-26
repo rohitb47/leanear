@@ -14,6 +14,7 @@ import { api } from "@/trpc/client"
 import { useApp } from "@/components/chrome/app"
 import { Menu } from "@/components/chrome/menu"
 import { Av } from "@/components/common/avatar"
+import { Seg } from "@/components/common/seg"
 import { I } from "@/components/common/icons"
 import { ago } from "@/lib/ui/format"
 
@@ -43,14 +44,15 @@ export function Activity({
     <div className="set">
       <div className="set-col wide">
         <div className="toolbar">
-          <div className="seg" role="tablist" aria-label="Activity or trash">
-            <button role="tab" aria-selected={!trash} onClick={() => to(false)}>
-              Activity
-            </button>
-            <button role="tab" aria-selected={trash} onClick={() => to(true)}>
-              Trash
-            </button>
-          </div>
+          <Seg
+            label="Activity or trash"
+            value={trash ? "trash" : "activity"}
+            onChange={(v) => to(v === "trash")}
+            options={[
+              { value: "activity", label: "Activity" },
+              { value: "trash", label: "Trash" },
+            ]}
+          />
         </div>
         {trash ? (
           <Trash projectKey={projectKey} />

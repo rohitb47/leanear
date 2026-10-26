@@ -114,6 +114,7 @@ function Body({ onClose }: { onClose: () => void }) {
 
   const tasks: Item[] = ql
     ? Object.values(d.tasks)
+        .filter((t) => d.projects[t.projectId])
         .map((t) => ({ t, ref: refOf(d, t) }))
         .filter(({ t, ref }) => has(ref) || has(t.title) || has(t.notes))
         .sort((a, b) => b.t.updatedAt.localeCompare(a.t.updatedAt))

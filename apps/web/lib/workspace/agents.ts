@@ -53,6 +53,12 @@ export async function newKey(c: Ctx, a: { memberId?: unknown }) {
     },
   })
   if (!m) throw new LeanError("No such agent", 404)
+  // A new key replaces the ones that were never used: each was shown once and
+  // never connected, so nothing depends on it. Keys in use stay until revoked.
+  await prisma.agentKey.updateMany({
+    where: { memberId: m.id, revokedAt: null, lastUsedAt: null },
+    data: { revokedAt: new Date() },
+  })
   const key = await mintKey(prisma, m.id)
   await note(
     c,
@@ -63,24 +69,40 @@ export async function newKey(c: Ctx, a: { memberId?: unknown }) {
   return { key }
 }
 
-export async function revokeKey(c: Ctx, a: { keyId?: unknown }) {
+/** Revoke an agent's keys: the ones never used, or all of them. */
+export async function revokeKeys(
+  c: Ctx,
+  a: { memberId?: unknown; unused?: unknown }
+) {
   person(c)
-  const k = await prisma.agentKey.findFirst({
-    where: { id: String(a.keyId), member: { workspaceId: c.ws } },
-    include: { member: true },
+  const m = await prisma.member.findFirst({
+    where: {
+      id: String(a.memberId),
+      workspaceId: c.ws,
+      kind: "agent",
+      removedAt: null,
+    },
   })
-  if (!k) throw new LeanError("No such key", 404)
-  await prisma.agentKey.update({
-    where: { id: k.id },
+  if (!m) throw new LeanError("No such agent", 404)
+  const unused = a.unused === true
+  const r = await prisma.agentKey.updateMany({
+    where: {
+      memberId: m.id,
+      revokedAt: null,
+      ...(unused && { lastUsedAt: null }),
+    },
     data: { revokedAt: new Date() },
   })
-  await note(
-    c,
-    k.member,
-    "key.revoked",
-    `Revoked ${k.member.name}'s key ending ${k.hint}`
-  )
-  return { ok: true }
+  if (r.count)
+    await note(
+      c,
+      m,
+      "key.revoked",
+      unused
+        ? `Revoked ${r.count} of ${m.name}'s unused keys`
+        : `Revoked all of ${m.name}'s keys`
+    )
+  return { count: r.count }
 }
 
 function note(

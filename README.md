@@ -47,6 +47,8 @@ shows you.
 | `GITHUB_ID`, `GITHUB_SECRET` | A GitHub OAuth app at github.com/settings/developers, callback `<PUBLIC_URL>/api/auth/callback/github`                                                      |
 | `STRIPE_SECRET_KEY`          | Cloud only. Stripe, Developers, API keys. A restricted key needs write on Customers, Checkout Sessions, Prices, Products, Subscriptions and Customer portal |
 | `STRIPE_WEBHOOK_SECRET`      | Cloud only. Stripe, Developers, Webhooks: an endpoint at `<PUBLIC_URL>/api/stripe`                                                                          |
+| `RESEND_API_KEY`             | Optional. resend.com, API Keys. Sends invites by email; without it they're links to copy                                                                    |
+| `EMAIL_FROM`                 | Optional. A sender on a domain verified in Resend, like `Leanear <hello@leanear.app>`                                                                       |
 
 Leave the Stripe pair out and there's no plan and no caps. That's a self-hosted copy.
 

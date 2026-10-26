@@ -48,7 +48,7 @@ function type(v: unknown): TaskType {
 const live = (c: Pick<Ctx, "ws">) => ({
   workspaceId: c.ws,
   deletedAt: null,
-  project: { deletedAt: null },
+  project: { deletedAt: null, archivedAt: null },
 })
 
 /** A live task by its ref ("PRO-12") or its internal id. */
@@ -61,7 +61,11 @@ export async function findTask(c: Pick<Ctx, "ws">, ref: unknown) {
       ...(m
         ? {
             number: Number(m[2]),
-            project: { key: m[1].toUpperCase(), deletedAt: null },
+            project: {
+              key: m[1].toUpperCase(),
+              deletedAt: null,
+              archivedAt: null,
+            },
           }
         : { id: r }),
     },

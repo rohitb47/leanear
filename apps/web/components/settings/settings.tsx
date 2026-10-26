@@ -62,6 +62,7 @@ export function Settings() {
       <div className="set-col">
         <MembersSection data={data} reload={reload} />
         {d.billing.on && <PlanSection />}
+        <ArchivedSection />
         <WorkspaceSection />
         <section>
           <h4>You</h4>
@@ -198,14 +199,48 @@ function ProjectSection({ projectKey }: { projectKey: string }) {
             {tasks} {tasks === 1 ? "task" : "tasks"}
           </span>
         </div>
+        {Object.keys(d.projects).length > 1 && (
+          <button
+            className="set-row add"
+            onClick={async () => {
+              if (
+                !(await confirm({
+                  title: `Archive ${p.name}?`,
+                  body: "It leaves Home and the menus, and agents stop getting its tasks. Everything stays, and you can bring it back from Settings at Home.",
+                  action: "Archive",
+                }))
+              )
+                return
+              try {
+                putProject(await api.projects.archive.mutate({ project: p.id }))
+                go({ view: "home" }, true)
+                toast(`Archived ${p.name}`)
+              } catch (e) {
+                toast((e as Error).message)
+              }
+            }}
+          >
+            Archive project
+          </button>
+        )}
         {tasks === 0 && Object.keys(d.projects).length > 1 && (
           <button
             className="set-row add"
             style={{ color: "var(--red)" }}
             onClick={async () => {
+              if (
+                !(await confirm({
+                  title: `Delete ${p.name}?`,
+                  body: "It goes to the trash, where you can restore it.",
+                  action: "Delete",
+                  danger: true,
+                }))
+              )
+                return
               try {
                 await api.projects.delete.mutate({ project: p.id })
                 putProject({ ...p, deleted: true })
+                go({ view: "home" }, true)
                 toast(
                   `Moved ${p.name} to the trash`,
                   undoable(p.name, async () => {
@@ -216,10 +251,6 @@ function ProjectSection({ projectKey }: { projectKey: string }) {
                     if ("project" in r && r.project) putProject(r.project)
                   })
                 )
-                const next = Object.values(d.projects).find(
-                  (x) => x.id !== p.id
-                )
-                if (next) go({ view: "board", key: next.key }, true)
               } catch (e) {
                 toast((e as Error).message)
               }
@@ -333,11 +364,15 @@ function MembersSection({
             <div className="set-row" key={i.id}>
               <span className="av lg none">{I.plus}</span>
               <div className="who">
-                <div className="mono" style={{ color: "var(--ink)" }}>
-                  {link(i.token)}
-                </div>
+                {i.email ? (
+                  <div>{i.email}</div>
+                ) : (
+                  <div className="mono" style={{ color: "var(--ink)" }}>
+                    {link(i.token)}
+                  </div>
+                )}
                 <div className="sub">
-                  Invite link, works until{" "}
+                  {i.email ? "Invited" : "Invite link"}, works until{" "}
                   {new Date(i.expiresAt).toLocaleDateString("en", {
                     month: "short",
                     day: "numeric",
@@ -393,25 +428,55 @@ function MembersSection({
             >
               New key
             </button>
-            {keysOf(menu.m).map((k) => (
+            {keysOf(menu.m).some((k) => !k.lastUsedAt) && (
               <button
-                key={k.id}
                 onClick={async () => {
+                  const m = menu.m
+                  const n = keysOf(m).filter((k) => !k.lastUsedAt).length
                   setMenu(null)
                   if (
                     await confirm({
-                      title: `Revoke lk_••••${k.hint}?`,
-                      body: "Anything using this key stops at once.",
+                      title: `Revoke ${n} unused ${n === 1 ? "key" : "keys"}?`,
+                      body: `Keys of ${m.name}'s that never connected. The ones in use keep working.`,
                       action: "Revoke",
                       danger: true,
                     })
                   )
-                    act(() => api.workspace.revokeKey.mutate({ keyId: k.id }))
+                    act(() =>
+                      api.workspace.revokeKeys.mutate({
+                        memberId: m.id,
+                        unused: true,
+                      })
+                    )
                 }}
               >
-                Revoke lk_••••{k.hint}
+                Revoke unused keys
               </button>
-            ))}
+            )}
+            {keysOf(menu.m).length > 0 && (
+              <button
+                onClick={async () => {
+                  const m = menu.m
+                  setMenu(null)
+                  if (
+                    await confirm({
+                      title: `Revoke all of ${m.name}'s keys?`,
+                      body: "Anything using them stops at once. Make a new key to connect it again.",
+                      action: "Revoke all",
+                      danger: true,
+                    })
+                  )
+                    act(() =>
+                      api.workspace.revokeKeys.mutate({
+                        memberId: m.id,
+                        unused: false,
+                      })
+                    )
+                }}
+              >
+                Revoke all keys
+              </button>
+            )}
             <hr />
           </>
         ) : (
@@ -525,6 +590,48 @@ function PlanSection() {
             <span className="role" style={{ width: 48, textAlign: "right" }}>
               {n} of {max}
             </span>
+          </div>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+/** Archived projects, to bring back. Only there when there are some. */
+function ArchivedSection() {
+  const d = useData()
+  const { go } = useApp()
+  const list = Object.values(d.archived).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  )
+  if (!list.length) return null
+  return (
+    <section>
+      <h4>
+        Archived projects <span className="n">{list.length}</span>
+      </h4>
+      <div className="set-card">
+        {list.map((p) => (
+          <div className="set-row" key={p.id}>
+            <span className="keypill">{p.key}</span>
+            <div className="who">
+              <div>{p.name}</div>
+            </div>
+            <button
+              className="btn sm"
+              onClick={async () => {
+                try {
+                  const r = await api.projects.unarchive.mutate({ id: p.id })
+                  putProject(r)
+                  toast(`${p.name} is back`)
+                  go({ view: "board", key: r.key })
+                } catch (e) {
+                  toast((e as Error).message)
+                }
+              }}
+            >
+              Unarchive
+            </button>
           </div>
         ))}
       </div>

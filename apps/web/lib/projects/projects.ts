@@ -11,16 +11,18 @@ export const toProject = (r: ProjectRow): Project => ({
   id: r.id,
   key: r.key,
   name: r.name,
+  archived: !!r.archivedAt,
   deleted: !!r.deletedAt,
 })
 
-/** A live project by id, key ("PRO") or name. */
+/** A live, open project by id, key ("PRO") or name. Archived ones are out of reach. */
 export async function findProject(c: Ctx, ref: unknown): Promise<ProjectRow> {
   const r = text(ref, "project", 80)
   const p = await prisma.project.findFirst({
     where: {
       workspaceId: c.ws,
       deletedAt: null,
+      archivedAt: null,
       OR: [
         { id: r },
         { key: r.toUpperCase() },
@@ -51,7 +53,7 @@ async function freeKey(c: Ctx, v: unknown) {
 
 export async function listProjects(c: Ctx) {
   const rows = await prisma.project.findMany({
-    where: { workspaceId: c.ws, deletedAt: null },
+    where: { workspaceId: c.ws, deletedAt: null, archivedAt: null },
     orderBy: { createdAt: "asc" },
   })
   return rows.map(toProject)
@@ -118,6 +120,52 @@ export async function deleteProject(c: Ctx, a: { project?: unknown }) {
   })
   await note(c, row, "deleted", `Deleted the ${p.name} project (${p.key})`)
   return { ok: true }
+}
+
+/**
+ * Archive: the project leaves Home and the menus, stops counting toward the
+ * plan, and its tasks stop reaching agents. Everything stays, to bring back.
+ */
+export async function archiveProject(c: Ctx, a: { project?: unknown }) {
+  person(c)
+  const p = await findProject(c, a.project)
+  const open = await prisma.project.count({
+    where: { workspaceId: c.ws, deletedAt: null, archivedAt: null },
+  })
+  if (open <= 1)
+    throw new LeanError("Keep one project open. Make another first.")
+  const now = new Date()
+  const row = await prisma.project.update({
+    where: { id: p.id },
+    data: { archivedAt: now, archivedBy: c.me.id, updatedAt: now },
+  })
+  await note(c, row, "archived", `Archived the ${p.name} project (${p.key})`)
+  return toProject(row)
+}
+
+export async function unarchiveProject(c: Ctx, a: { id?: unknown }) {
+  person(c)
+  const p = await prisma.project.findFirst({
+    where: {
+      id: String(a.id),
+      workspaceId: c.ws,
+      deletedAt: null,
+      archivedAt: { not: null },
+    },
+  })
+  if (!p) throw new LeanError("That project isn't archived", 404)
+  await withinPlan(c, "projects")
+  const row = await prisma.project.update({
+    where: { id: p.id },
+    data: { archivedAt: null, archivedBy: null, updatedAt: new Date() },
+  })
+  await note(
+    c,
+    row,
+    "unarchived",
+    `Brought back the ${p.name} project (${p.key})`
+  )
+  return toProject(row)
 }
 
 /** Back from the trash, if no live project has taken its key since. */

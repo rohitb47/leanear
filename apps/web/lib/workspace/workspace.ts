@@ -76,6 +76,7 @@ export async function settingsData(c: Ctx): Promise<SettingsData> {
     invites: invites.map((i) => ({
       id: i.id,
       token: i.token,
+      email: i.email,
       expiresAt: i.expiresAt.toISOString(),
     })),
   }

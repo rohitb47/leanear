@@ -1,7 +1,9 @@
 import { z } from "zod"
 import {
+  archiveProject,
   createProject,
   deleteProject,
+  unarchiveProject,
   updateProject,
 } from "@/lib/projects/projects"
 import { createTRPCRouter, workspaceProcedure } from "../init"
@@ -31,4 +33,12 @@ export const projectsRouter = createTRPCRouter({
   delete: workspaceProcedure
     .input(z.object({ project }))
     .mutation(({ ctx, input }) => deleteProject(ctx.c, input)),
+
+  archive: workspaceProcedure
+    .input(z.object({ project }))
+    .mutation(({ ctx, input }) => archiveProject(ctx.c, input)),
+
+  unarchive: workspaceProcedure
+    .input(z.object({ id: z.string() }))
+    .mutation(({ ctx, input }) => unarchiveProject(ctx.c, input)),
 })

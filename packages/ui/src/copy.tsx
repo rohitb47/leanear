@@ -3,8 +3,9 @@
 import { useEffect, useState } from "react"
 
 // Copies a line and shows a tick for a moment. A square icon button, so its
-// width never changes between the two states.
-export function Copy({ text }: { text: string }) {
+// width never changes between the two states. `text` can also be made on
+// click (a line holding a key minted then); the tick waits until it's copied.
+export function Copy({ text }: { text: string | (() => Promise<string>) }) {
   const [done, setDone] = useState(false)
   useEffect(() => {
     if (!done) return
@@ -17,7 +18,29 @@ export function Copy({ text }: { text: string }) {
       data-done={done}
       aria-label={done ? "Copied" : "Copy"}
       title={done ? "Copied" : "Copy"}
-      onClick={() => {
+      onClick={async () => {
+        if (typeof text !== "string") {
+          const made = text()
+          try {
+            // Written in the same click, so Safari allows it.
+            if (
+              typeof ClipboardItem !== "undefined" &&
+              navigator.clipboard?.write
+            )
+              await navigator.clipboard.write([
+                new ClipboardItem({
+                  "text/plain": made.then(
+                    (t) => new Blob([t], { type: "text/plain" })
+                  ),
+                }),
+              ])
+            else await navigator.clipboard.writeText(await made)
+            setDone(true)
+          } catch {
+            // Making the text failed and said why; nothing was copied.
+          }
+          return
+        }
         setDone(true)
         navigator.clipboard?.writeText(text).catch(() => {
           const ta = document.createElement("textarea")

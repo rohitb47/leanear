@@ -160,6 +160,8 @@ model Invite {
   workspaceId String    @map("workspace_id")
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   token       String    @unique
+  /// Who it was emailed to, when it was. A link still works for anyone who has it.
+  email       String?
   createdBy   String    @map("created_by")
   expiresAt   DateTime  @map("expires_at") @db.Timestamptz
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
@@ -181,6 +183,9 @@ model Project {
   updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
   deletedBy   String?   @map("deleted_by")
+  /// Archived: kept, out of the way, read-only until it's brought back.
+  archivedAt  DateTime? @map("archived_at") @db.Timestamptz
+  archivedBy  String?   @map("archived_by")
   tasks       Task[]
 
   @@index([workspaceId, updatedAt], map: "projects_ws")

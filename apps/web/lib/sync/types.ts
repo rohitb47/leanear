@@ -39,6 +39,7 @@ export type Project = {
   id: string
   key: string
   name: string
+  archived: boolean
   deleted: boolean
 }
 
@@ -113,6 +114,8 @@ export type Snapshot = Sync & {
   workspaces: { id: string; name: string }[]
   mcpUrl: string
   billing: Billing
+  /** Resend is set up, so invites can go by email. */
+  mail: boolean
   /** God mode: `next dev` on a local database only. */
   god: boolean
 }
@@ -124,7 +127,12 @@ export type AgentKey = {
   lastUsedAt: string | null
   createdAt: string
 }
-export type Invite = { id: string; token: string; expiresAt: string }
+export type Invite = {
+  id: string
+  token: string
+  email: string | null
+  expiresAt: string
+}
 export type SettingsData = { keys: AgentKey[]; invites: Invite[] }
 
 /** A line in the workspace's history: who, what, when, in a frozen sentence. */

@@ -45,18 +45,77 @@ export function connectFor(tool: AgentKey, url: string, key: string) {
   }
 }
 
-/** One grey box with Copy. Copy takes all of it. */
-export function Cmd({ code, file }: { code: string; file?: string }) {
+/**
+ * One grey box with Copy. Copy takes all of it, or `copy` when what's shown
+ * isn't what's copied (a masked key, made on click).
+ */
+export function Cmd({
+  code,
+  file,
+  copy,
+  shown,
+  onReveal,
+}: {
+  code: string
+  file?: string
+  copy?: () => Promise<string>
+  /** With `onReveal`: an eye beside Copy that shows or masks the secret. */
+  shown?: boolean
+  onReveal?: () => void
+}) {
   return (
     <div className="cmd">
       <pre>
         {file && <span className="file">{file}</span>}
         {code}
       </pre>
-      <Copy text={code} />
+      <div className="cmd-tools">
+        {onReveal && (
+          <button
+            type="button"
+            className="copy"
+            aria-pressed={shown}
+            aria-label={shown ? "Hide the key" : "Show the key"}
+            title={shown ? "Hide the key" : "Show the key"}
+            onClick={onReveal}
+          >
+            {shown ? EYE_OFF : EYE}
+          </button>
+        )}
+        <Copy text={copy ?? code} />
+      </div>
     </div>
   )
 }
+
+const EYE = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+    <path
+      d="M1.2 7S3.3 3 7 3s5.8 4 5.8 4-2.1 4-5.8 4-5.8-4-5.8-4Z"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+    />
+    <circle cx="7" cy="7" r="1.8" stroke="currentColor" strokeWidth="1.3" />
+  </svg>
+)
+const EYE_OFF = (
+  <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+    <path
+      d="M1.2 7S3.3 3 7 3s5.8 4 5.8 4-2.1 4-5.8 4-5.8-4-5.8-4Z"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinejoin="round"
+    />
+    <circle cx="7" cy="7" r="1.8" stroke="currentColor" strokeWidth="1.3" />
+    <path
+      d="M2 12 12 2"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+    />
+  </svg>
+)
 
 /** The row of agent tiles; the picked one carries a ring. */
 export function PickTool({

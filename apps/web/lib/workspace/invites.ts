@@ -1,8 +1,10 @@
 import "server-only"
 import { withinPlan } from "@/lib/billing/billing"
+import { origin } from "@/lib/auth/session"
+import { inviteMail, mailOn, sendMail } from "@/lib/email/send"
 import { record } from "@/lib/log/log"
 import { prisma } from "@/lib/prisma"
-import { id, token } from "@/lib/utils"
+import { LeanError, id, text, token } from "@/lib/utils"
 import { owner, type Ctx } from "./context"
 import { displayName } from "./workspace"
 
@@ -12,26 +14,58 @@ const usable = (tok: string) => ({
   expiresAt: { gt: new Date() },
 })
 
-export async function createInvite(c: Ctx) {
+/**
+ * An invite: a link that works for 7 days. With an email (and Resend set up)
+ * it's also sent there; the link is the invite either way.
+ */
+export async function createInvite(c: Ctx, a: { email?: unknown } = {}) {
   owner(c)
+  const email =
+    a.email === undefined || a.email === "" ? null : text(a.email, "Email", 200)
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+    throw new LeanError("That doesn't look like an email address")
+  if (email && !mailOn())
+    throw new LeanError("Email is off on this server. Copy the link instead.")
   const row = await prisma.invite.create({
     data: {
       id: id(),
       workspaceId: c.ws,
       token: token(18),
       createdBy: c.me.id,
+      email,
       expiresAt: new Date(Date.now() + 7 * 864e5),
     },
   })
+  const link = `${await origin()}/join/${row.token}`
+  // The invite stands even if the email doesn't go; the link is shown either way.
+  let mailError: string | null = null
+  if (email) {
+    const ws = await prisma.workspace.findUniqueOrThrow({ where: { id: c.ws } })
+    try {
+      await sendMail({
+        to: email,
+        ...inviteMail({ from: c.me.name, workspace: ws.name, link }),
+      })
+    } catch (e) {
+      mailError =
+        e instanceof LeanError
+          ? e.message
+          : "The email didn't send. The link still works."
+      if (!(e instanceof LeanError)) console.error("invite mail", e)
+    }
+  }
   await record(prisma, c, {
     action: "invite.created",
     kind: "member",
-    subject: { id: row.id, label: "Invite link" },
-    summary: "Made an invite link",
+    subject: { id: row.id, label: email ?? "Invite link" },
+    summary: email ? `Invited ${email}` : "Made an invite link",
   })
   return {
     id: row.id,
     token: row.token,
+    email,
+    sent: !!email && !mailError,
+    mailError,
     expiresAt: row.expiresAt.toISOString(),
   }
 }

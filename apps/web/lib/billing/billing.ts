@@ -20,7 +20,9 @@ async function workspace(ws: string) {
 
 async function usage(ws: string) {
   const [projects, people, agents] = await Promise.all([
-    prisma.project.count({ where: { workspaceId: ws, deletedAt: null } }),
+    prisma.project.count({
+      where: { workspaceId: ws, deletedAt: null, archivedAt: null },
+    }),
     prisma.member.count({
       where: { workspaceId: ws, kind: "person", removedAt: null },
     }),
