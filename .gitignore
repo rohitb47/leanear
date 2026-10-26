@@ -41,11 +41,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
-# local brand work, not part of the site
-/teaser/
-/references.html
-/directions.html
-/prototype.html
 /.claude/
 
 # embedded dev database

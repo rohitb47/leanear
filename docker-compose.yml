@@ -1,4 +1,7 @@
-# Local Postgres for `pnpm dev`: docker compose up -d
+# Self-host: put your settings in .env beside this file, then
+#   docker compose up -d
+# For working on Leanear itself, start only the database:
+#   docker compose up -d db
 services:
   db:
     image: postgres:17-alpine
@@ -8,5 +11,22 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "postgres"]
+      interval: 2s
+      retries: 30
+  app:
+    build: .
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://postgres:leanear@db:5432/postgres}
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
 volumes:
   pgdata:
