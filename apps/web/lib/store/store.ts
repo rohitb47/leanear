@@ -16,7 +16,7 @@ import type {
 
 export type Data = Omit<
   Snapshot,
-  "members" | "projects" | "tasks" | "activity"
+  "members" | "projects" | "tasks" | "recent" | "activity"
 > & {
   members: Record<string, Member>
   projects: Record<string, Project>
@@ -72,25 +72,72 @@ export function useData() {
   )
 }
 
+/**
+ * A sync asked before our own save landed can answer after it. Its row is
+ * older than the one we hold, so it mustn't win.
+ */
+const older = (row: { updatedAt: string }, have?: { updatedAt: string }) =>
+  !!have && row.updatedAt < have.updatedAt
+
 export function applySync(s: Sync) {
-  update((d) => {
-    const tasks = { ...d.tasks }
-    for (const t of s.tasks) {
-      if (inflight.has(t.id)) continue
-      if (t.deleted) delete tasks[t.id]
-      else tasks[t.id] = t
-    }
-    const projects = { ...d.projects }
-    for (const p of s.projects) {
-      if (p.deleted) delete projects[p.id]
-      else projects[p.id] = p
-    }
-    const members = { ...d.members, ...byId(s.members) }
-    const activity = s.activity
+  const d = active!.state
+  // Most ticks change nothing. Then nothing re-renders: the board's cards
+  // aren't re-measured every three seconds.
+  const tasks = merge(
+    d.tasks,
+    s.tasks,
+    (t) => inflight.has(t.id) || older(t, d.tasks[t.id])
+  )
+  const projects = merge(d.projects, s.projects)
+  const members = merge(d.members, s.members)
+  const same = (a: unknown, b: unknown) =>
+    JSON.stringify(a) === JSON.stringify(b)
+  const activity =
+    s.activity && !same(d.activity[s.activity.taskId], s.activity.items)
       ? { ...d.activity, [s.activity.taskId]: s.activity.items }
       : d.activity
-    return { ...d, cursor: s.cursor, tasks, projects, members, activity }
-  })
+  if (
+    tasks === d.tasks &&
+    projects === d.projects &&
+    members === d.members &&
+    activity === d.activity
+  )
+    active!.state = { ...d, cursor: s.cursor }
+  else
+    update(() => ({
+      ...d,
+      cursor: s.cursor,
+      tasks,
+      projects,
+      members,
+      activity,
+    }))
+  if (s.recent.length) feedSubs.forEach((f) => f(s.recent))
+}
+
+/**
+ * Rows from the server laid over what we hold: the same object back when
+ * nothing differs. `skip` keeps rows we're writing ourselves.
+ */
+function merge<T extends { id: string; deleted?: boolean; removed?: boolean }>(
+  have: Record<string, T>,
+  rows: T[],
+  skip?: (row: T) => boolean
+) {
+  let next: Record<string, T> | null = null
+  for (const r of rows) {
+    if (skip?.(r)) continue
+    const cur = have[r.id]
+    if (r.deleted) {
+      if (!cur) continue
+      next ??= { ...have }
+      delete next[r.id]
+    } else if (!cur || JSON.stringify(cur) !== JSON.stringify(r)) {
+      next ??= { ...have }
+      next[r.id] = r
+    }
+  }
+  return next ?? have
 }
 
 export function putTask(t: Task) {
@@ -108,6 +155,9 @@ export function putProject(p: Project) {
     else projects[p.id] = p
     return { ...d, projects }
   })
+}
+export function setBilling(billing: Data["billing"]) {
+  update((d) => ({ ...d, billing }))
 }
 export function putMember(m: Member) {
   update((d) => ({ ...d, members: { ...d.members, [m.id]: m } }))
@@ -136,12 +186,41 @@ export function release(id: string) {
 
 /* ───────── Toasts ───────── */
 
-const toastSubs = new Set<(m: string) => void>()
-export const toast = (m: string) => toastSubs.forEach((f) => f(m))
-export const onToast = (f: (m: string) => void) => {
+/** A button on a toast, like Undo. */
+export type ToastAction = { label: string; run: () => void }
+const toastSubs = new Set<(m: string, a?: ToastAction) => void>()
+export const toast = (m: string, a?: ToastAction) =>
+  toastSubs.forEach((f) => f(m, a))
+export const onToast = (f: (m: string, a?: ToastAction) => void) => {
   toastSubs.add(f)
   return () => {
     toastSubs.delete(f)
+  }
+}
+
+/** Undo a delete: bring it back from the trash and put it where it was. */
+export function undoable(
+  label: string,
+  restore: () => Promise<unknown>
+): ToastAction {
+  return {
+    label: "Undo",
+    run: () => {
+      restore().then(
+        () => toast(`Restored ${label}`),
+        (e) => toast((e as Error).message)
+      )
+    },
+  }
+}
+
+/* ───────── What others just did ───────── */
+
+const feedSubs = new Set<(a: Activity[]) => void>()
+export const onFeed = (f: (a: Activity[]) => void) => {
+  feedSubs.add(f)
+  return () => {
+    feedSubs.delete(f)
   }
 }
 

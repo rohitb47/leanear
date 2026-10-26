@@ -23,14 +23,15 @@ app, an MCP tool for agents, and neither touches Prisma itself.
 ## tRPC (`trpc/`)
 
 - **`workspaceProcedure` for everything** the app calls. It refuses anyone signed out and
-  hands the procedure `ctx.c`.
+  hands the procedure `ctx.c`. **`paidProcedure`** on top of it for work on tasks, so an
+  unpaid Cloud workspace can't write.
 - **Procedures are thin**: a zod schema for the shape, then one call into `lib/`. A
   `LeanError` becomes a tRPC error carrying its message.
 - **The client is `api` from `@/trpc/client`.** The board doesn't use a query cache: it
   writes through `patch()` and reads from its own store (see
   [`architecture.md`](./architecture.md), Sync). Screens outside the board call `api`
   directly.
-- One router per concern: `tasks`, `projects`, `workspace`.
+- One router per concern, named after its `lib/` folder.
 
 ## MCP (`lib/mcp/`, `app/mcp/route.ts`)
 
@@ -38,6 +39,7 @@ app, an MCP tool for agents, and neither touches Prisma itself.
   plain text an agent can read, never JSON.
 - The route only speaks the protocol (JSON-RPC over HTTP, stateless). Tools live in
   `lib/mcp/tools.ts`.
+- **MCP calls are gated by the plan** in the route, before any tool runs.
 - **A new task operation usually wants both doors.** Add the function to `lib/`, then the
   procedure and the tool, then the line in `docs/SPEC.md`.
 

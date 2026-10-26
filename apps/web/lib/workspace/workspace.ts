@@ -1,4 +1,5 @@
 import "server-only"
+import { record } from "@/lib/log/log"
 import { prisma } from "@/lib/prisma"
 import type { SettingsData } from "@/lib/sync/types"
 import { id, text } from "@/lib/utils"
@@ -38,6 +39,12 @@ export async function renameWorkspace(c: Ctx, a: { name?: unknown }) {
   person(c)
   const name = text(a.name, "Name", 60)
   await prisma.workspace.update({ where: { id: c.ws }, data: { name } })
+  await record(prisma, c, {
+    action: "workspace.renamed",
+    kind: "workspace",
+    subject: { id: c.ws, label: name },
+    summary: `Renamed the workspace to ${name}`,
+  })
   return { ok: true, name }
 }
 

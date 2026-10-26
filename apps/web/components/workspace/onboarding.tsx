@@ -1,64 +1,145 @@
 "use client"
 
 import { Mark } from "@leanear/ui/mark"
-import { set, spring } from "@leanear/ui/spring"
-import { useLayoutEffect, useRef, useState } from "react"
+import { useState } from "react"
 import { keyFor } from "@/lib/projects/key"
-import type { Project } from "@/lib/sync/types"
+import { liveMembers, putProject, useData } from "@/lib/store/store"
 import { api } from "@/trpc/client"
 import { useApp } from "@/components/chrome/app"
-import { Connect } from "@/components/workspace/connect"
-import { putMember, putProject, useData } from "@/lib/store/store"
+import { Flow } from "@/components/chrome/flow"
+import { AddAgent } from "@/components/workspace/add-agent"
+import { SetupSteps } from "@/components/workspace/setup"
+import { PlanCard, usePrice, useStartPlan } from "@/components/workspace/plan"
 
-/** Two steps: name the product, bring the agent. Each slides the way you're going. */
-export function Onboarding() {
+export type Step = "project" | "plan" | "agent" | "setup"
+
+/**
+ * First run, one thing per screen: what you're building, the plan (Cloud
+ * only), your agent, and letting it fill the board from the repo. Each
+ * screen's buttons sit in the pinned footer, never below the fold.
+ */
+export function Onboarding({ step: asked }: { step?: Step }) {
   const d = useData()
   const { go } = useApp()
-  const [step, setStep] = useState<1 | 2>(
-    Object.keys(d.projects).length ? 2 : 1
-  )
-  const [made, setMade] = useState<Project | null>(null)
-  const ref = useRef<HTMLDivElement>(null)
-  const prev = useRef(step)
+  const price = usePrice()
+  const plan = useStartPlan("/welcome/agent")
+  const has = Object.keys(d.projects).length > 0
+  const unpaid = d.billing.on && !d.billing.active
+  const steps: Step[] = d.billing.on
+    ? ["project", "plan", "agent", "setup"]
+    : ["project", "agent", "setup"]
+  const step: Step = !has
+    ? "project"
+    : asked && steps.includes(asked) && !(asked === "plan" && !unpaid)
+      ? asked
+      : unpaid
+        ? "plan"
+        : "agent"
+  const at = steps.indexOf(step)
 
-  useLayoutEffect(() => {
-    if (prev.current === step || !ref.current) return
-    const dir = step > prev.current ? 1 : -1
-    prev.current = step
-    set(ref.current, { x: dir * 28, o: 0 })
-    spring(ref.current, {}, { r: 0.3 })
-  }, [step])
-
-  const finish = () => {
-    const key = made?.key ?? Object.values(d.projects)[0]?.key
-    if (key) go({ view: "board", key })
+  const key = Object.values(d.projects)[0]?.key ?? ""
+  const next = () => {
+    const n = steps[at + 1]
+    if (n) go({ view: "welcome", step: n })
+    else go({ view: "board", key })
   }
+  const agent = liveMembers(d).some((m) => m.kind === "agent")
+
+  const foot =
+    step === "project" ? (
+      <button className="btn accent" type="submit" form="project-form">
+        Create project
+      </button>
+    ) : step === "plan" ? (
+      <button className="btn accent" disabled={plan.busy} onClick={plan.start}>
+        Start for ${price} a month
+      </button>
+    ) : step === "agent" ? (
+      <>
+        <button className="btn bare" onClick={next}>
+          Skip for now
+        </button>
+        <button className="btn accent" onClick={next} disabled={!agent}>
+          Continue
+        </button>
+      </>
+    ) : (
+      <button className="btn accent" onClick={next}>
+        Open the board
+      </button>
+    )
 
   return (
-    <div className="center">
-      <div className="stack" ref={ref}>
-        {step === 1 ? (
-          <ProjectStep
-            first={d.me.name.split(/\s+/)[0]}
-            onDone={(p) => {
-              setMade(p)
-              setStep(2)
-            }}
-          />
-        ) : (
-          <AgentStep url={d.mcpUrl} onDone={finish} />
-        )}
+    <Flow foot={foot}>
+      <div className="bigmark">
+        <Mark size={36} />
       </div>
-    </div>
+      <div className="steps" aria-hidden>
+        {steps.map((s, i) => (
+          <i key={s} className={i <= at ? "on" : ""} />
+        ))}
+      </div>
+      {step === "project" && (
+        <>
+          <h1>What are you building, {d.me.name.split(/\s+/)[0]}?</h1>
+          <p className="lead">
+            One project per product. You can add more later.
+          </p>
+          <div className="card">
+            <ProjectForm id="project-form" onDone={next} />
+          </div>
+        </>
+      )}
+      {step === "plan" && (
+        <>
+          <h1>One price for the whole team</h1>
+          <p className="lead">
+            ${price} a month for the workspace, not a seat. Pay with your
+            company card; the invoice carries its name and tax id.
+          </p>
+          <PlanCard />
+        </>
+      )}
+      {step === "agent" && (
+        <>
+          <h1>Bring your agent</h1>
+          <p className="lead">
+            It joins as a member with a name and a key, picks its next task,
+            does it and reports back.
+          </p>
+          <div className="card" style={{ padding: 0 }}>
+            <AddAgent autoFocus />
+          </div>
+        </>
+      )}
+      {step === "setup" && (
+        <>
+          <h1>Let it fill the board</h1>
+          <p className="lead">
+            Open your agent in the repo. It reads the code and turns TODOs,
+            issues and your roadmap into tasks. It never changes code.
+          </p>
+          <div className="card">
+            <SetupSteps projectKey={key} />
+          </div>
+        </>
+      )}
+    </Flow>
   )
 }
 
-function ProjectStep({
-  first,
+/**
+ * Name it; the key fills itself in (Provida → PRO) and can be changed. Its
+ * button can live elsewhere, like a pinned footer, through the form's `id`.
+ */
+export function ProjectForm({
+  id,
   onDone,
+  autoFocus = true,
 }: {
-  first: string
-  onDone: (p: Project) => void
+  id: string
+  onDone: (key: string) => void
+  autoFocus?: boolean
 }) {
   const [name, setName] = useState("")
   const [key, setKey] = useState<string | null>(null)
@@ -66,162 +147,56 @@ function ProjectStep({
   const [busy, setBusy] = useState(false)
   const k = key ?? (name.trim() ? keyFor(name) : "")
   return (
-    <>
-      <div className="bigmark">
-        <Mark size={44} />
-      </div>
-      <div className="dots">
-        <i className="on" />
-        <i />
-      </div>
-      <h2>What are you building, {first}?</h2>
-      <p>One project per product. You can add more later.</p>
-      <form
-        className="formcard"
-        onSubmit={async (e) => {
-          e.preventDefault()
-          if (!name.trim()) return setErr("Give it a name")
-          setBusy(true)
-          try {
-            const p = await api.projects.create.mutate({ name, key: k })
-            putProject(p)
-            onDone(p)
-          } catch (x) {
-            setErr((x as Error).message)
-          } finally {
-            setBusy(false)
-          }
-        }}
-      >
-        <div>
-          <label className="label" htmlFor="pname">
-            Project name
-            <span>
-              Key:{" "}
-              <input
-                className="mono"
-                aria-label="Key"
-                value={k}
-                placeholder="KEY"
-                onChange={(e) =>
-                  setKey(
-                    e.target.value
-                      .toUpperCase()
-                      .replace(/[^A-Z]/g, "")
-                      .slice(0, 5)
-                  )
-                }
-                style={{
-                  border: 0,
-                  background: "none",
-                  width: 48,
-                  padding: 0,
-                  color: "var(--ink)",
-                  outline: "none",
-                }}
-              />
-            </span>
-          </label>
+    <form
+      id={id}
+      style={{ display: "flex", flexDirection: "column", gap: 12 }}
+      onSubmit={async (e) => {
+        e.preventDefault()
+        if (busy) return
+        if (!name.trim()) return setErr("Give it a name")
+        setBusy(true)
+        try {
+          const p = await api.projects.create.mutate({ name, key: k })
+          putProject(p)
+          onDone(p.key)
+        } catch (x) {
+          setErr((x as Error).message)
+          setBusy(false)
+        }
+      }}
+    >
+      <div>
+        <label className="label" htmlFor={`${id}-name`}>
+          Project name
           <input
-            className="field"
-            id="pname"
-            autoFocus
-            value={name}
-            placeholder="Provida"
-            maxLength={60}
-            autoComplete="off"
-            onChange={(e) => {
-              setName(e.target.value)
-              setErr(null)
-            }}
+            aria-label="Key"
+            value={k}
+            placeholder="KEY"
+            onChange={(e) =>
+              setKey(
+                e.target.value
+                  .toUpperCase()
+                  .replace(/[^A-Z]/g, "")
+                  .slice(0, 5)
+              )
+            }
           />
-        </div>
-        {err && <div className="err">{err}</div>}
-        <button className="btn accent wide" type="submit" disabled={busy}>
-          Create project
-        </button>
-      </form>
-    </>
-  )
-}
-
-function AgentStep({ url, onDone }: { url: string; onDone: () => void }) {
-  const [name, setName] = useState("Claude")
-  const [key, setKey] = useState<string | null>(null)
-  const [err, setErr] = useState<string | null>(null)
-  const [busy, setBusy] = useState(false)
-  return (
-    <>
-      <div className="dots">
-        <i className="on" />
-        <i className="on" />
+        </label>
+        <input
+          className="field"
+          id={`${id}-name`}
+          autoFocus={autoFocus}
+          value={name}
+          placeholder="Provida"
+          maxLength={60}
+          autoComplete="off"
+          onChange={(e) => {
+            setName(e.target.value)
+            setErr(null)
+          }}
+        />
       </div>
-      <h2>Bring your agent</h2>
-      <p>
-        It joins as a member with its own name and key, and works through the
-        tasks you give it.
-      </p>
-      <div className="formcard">
-        {key ? (
-          <>
-            <Connect url={url} apiKey={key} />
-            <p style={{ fontSize: 13, textAlign: "center" }}>
-              Then tell it: “Work through my Leanear tasks.”
-            </p>
-            <button className="btn accent wide" onClick={onDone}>
-              I&apos;ve added it
-            </button>
-          </>
-        ) : (
-          <form
-            style={{ display: "contents" }}
-            onSubmit={async (e) => {
-              e.preventDefault()
-              setBusy(true)
-              try {
-                const r = await api.workspace.addAgent.mutate({ name })
-                putMember(r.member)
-                setKey(r.key)
-              } catch (x) {
-                setErr((x as Error).message)
-              } finally {
-                setBusy(false)
-              }
-            }}
-          >
-            <div>
-              <label className="label" htmlFor="aname">
-                Agent name
-              </label>
-              <input
-                className="field"
-                id="aname"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength={40}
-                autoComplete="off"
-              />
-            </div>
-            {err && <div className="err">{err}</div>}
-            <button
-              className="btn accent wide"
-              type="submit"
-              disabled={busy || !name.trim()}
-            >
-              Make its key
-            </button>
-          </form>
-        )}
-      </div>
-      {!key && (
-        <button
-          className="btn bare"
-          style={{ alignSelf: "center" }}
-          onClick={onDone}
-        >
-          Skip for now
-        </button>
-      )}
-    </>
+      {err && <div className="err">{err}</div>}
+    </form>
   )
 }

@@ -1,6 +1,6 @@
 # Architecture
 
-**Read before touching auth, agents and MCP, sync, or the schema.** Paths are relative to
+**Read before touching auth, agents and MCP, sync, billing, or the schema.** Paths are relative to
 `apps/web`.
 
 ## Two kinds of member
@@ -42,6 +42,30 @@ skips any task with a write of its own in flight.
 board as a change, so it keeps `deletedAt` and a fresh `updatedAt`. It's the one exception
 to Provida's "nothing is soft-deleted", and it lives in the data layer: every read in
 `lib/` filters live rows itself.
+
+## History and trash
+
+Two logs, for two questions. `activity` is one task's story, for its panel. `log` is the
+workspace's (`lib/log/`), for the Activity tab: every write that matters calls
+`record()` in its own transaction, with a sentence frozen at the time, so old lines
+stay true after the code changes. Task writes get both from one call (`log()` in
+`lib/tasks/activity.ts`).
+
+The trash is the soft-deleted rows, with `deleted_by`. Restoring clears `deleted_at`;
+nothing deletes for good.
+
+## Billing
+
+Cloud is the same code with `STRIPE_SECRET_KEY` set (`lib/billing/`). Stripe owns the
+truth; the workspace row mirrors it (status, paid until) so no request waits on Stripe.
+Three places write that mirror, all through `applySubscription`: the Checkout return page,
+and the webhook. Events map to a workspace by its Stripe customer, metadata only as a
+fallback.
+
+The gate is `mustBePaid`: `paidProcedure` for task writes, and every MCP call.
+Making projects and agents stays open, so onboarding works before the plan starts; the
+caps are `withinPlan`, checked where each thing is made. No key, no gate, no caps: that's
+self-hosting.
 
 ## Schema
 

@@ -2,6 +2,7 @@ import { TRPCError, initTRPC } from "@trpc/server"
 import type { TRPC_ERROR_CODE_KEY } from "@trpc/server/rpc"
 import superjson from "superjson"
 import { getSession } from "@/lib/auth/session"
+import { mustBePaid } from "@/lib/billing/billing"
 import { LeanError } from "@/lib/utils"
 
 export const createTRPCContext = async () => ({ session: await getSession() })
@@ -9,6 +10,7 @@ export const createTRPCContext = async () => ({ session: await getSession() })
 const CODES: Record<number, TRPC_ERROR_CODE_KEY> = {
   400: "BAD_REQUEST",
   401: "UNAUTHORIZED",
+  402: "FORBIDDEN",
   403: "FORBIDDEN",
   404: "NOT_FOUND",
   429: "TOO_MANY_REQUESTS",
@@ -51,4 +53,10 @@ export const workspaceProcedure = baseProcedure.use(({ ctx, next }) => {
   if (!ctx.session) throw new TRPCError({ code: "UNAUTHORIZED" })
   const s = ctx.session
   return next({ ctx: { session: s, c: { ws: s.workspace.id, me: s.me } } })
+})
+
+/** For work on tasks: on Cloud, only once the plan is running. */
+export const paidProcedure = workspaceProcedure.use(async ({ ctx, next }) => {
+  await mustBePaid(ctx.c.ws)
+  return next()
 })

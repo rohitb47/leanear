@@ -14,7 +14,6 @@ export const projectsRouter = createTRPCRouter({
       z.object({
         name: z.string(),
         key: z.string(),
-        brief: z.string().optional(),
       })
     )
     .mutation(({ ctx, input }) => createProject(ctx.c, input)),
@@ -25,7 +24,6 @@ export const projectsRouter = createTRPCRouter({
         project,
         name: z.string().optional(),
         key: z.string().optional(),
-        brief: z.string().optional(),
       })
     )
     .mutation(({ ctx, input }) => updateProject(ctx.c, input)),

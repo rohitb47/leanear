@@ -13,7 +13,8 @@ import {
 import { person, type Ctx } from "@/lib/workspace/context"
 import { findMember } from "@/lib/workspace/members"
 import { LeanError, id, text } from "@/lib/utils"
-import { log, taskActivity } from "./activity"
+import { record } from "@/lib/log/log"
+import { log, taskActivity, type TaskRef } from "./activity"
 
 export const toTask = (r: TaskRow): Task => ({
   id: r.id,
@@ -69,6 +70,14 @@ export async function findTask(c: Pick<Ctx, "ws">, ref: unknown) {
   if (!t) throw new LeanError(`No task ${r}`, 404)
   return t
 }
+
+/** How the history names a task. */
+const named = (t: TaskRow, key: string): TaskRef => ({
+  id: t.id,
+  projectId: t.projectId,
+  ref: `${key}-${t.number}`,
+  title: t.title,
+})
 
 const withRef = (t: TaskRow, key: string) => ({
   ...toTask(t),
@@ -126,7 +135,13 @@ export async function createTask(
         createdBy: c.me.id,
       },
     })
-    await log(tx, c, row.id, "created", who ? { assignee: who.id } : undefined)
+    await log(
+      tx,
+      c,
+      named(row, p.key),
+      "created",
+      who ? { assignee: who.id } : undefined
+    )
     return withRef(row, p.key)
   })
 }
@@ -178,7 +193,7 @@ export async function updateTask(
       where: { id: t.id },
       data: { ...data, updatedAt: new Date() },
     })
-    for (const [k, d] of logs) await log(tx, c, t.id, k, d)
+    for (const [k, d] of logs) await log(tx, c, named(t, t.project.key), k, d)
     return withRef(row, t.project.key)
   })
 }
@@ -201,8 +216,12 @@ export async function moveTask(
       data: { status: st, position, updatedAt: new Date() },
     })
     if (st !== t.status)
-      await log(tx, c, t.id, "moved", { from: t.status, to: st })
-    if (body) await log(tx, c, t.id, "commented", undefined, body)
+      await log(tx, c, named(t, t.project.key), "moved", {
+        from: t.status,
+        to: st,
+      })
+    if (body)
+      await log(tx, c, named(t, t.project.key), "commented", undefined, body)
     return withRef(row, t.project.key)
   })
 }
@@ -226,9 +245,12 @@ export async function comment(c: Ctx, a: { id?: unknown; body?: unknown }) {
     }
   }
   return prisma.$transaction(async (tx) => {
-    await log(tx, c, t.id, "commented", undefined, body)
+    await log(tx, c, named(t, t.project.key), "commented", undefined, body)
     const hand = handTo && handTo.id !== t.assigneeId
-    if (hand) await log(tx, c, t.id, "assigned", { to: handTo!.id })
+    if (hand)
+      await log(tx, c, named(t, t.project.key), "assigned", {
+        to: handTo!.id,
+      })
     const row = await tx.task.update({
       where: { id: t.id },
       data: {
@@ -240,15 +262,53 @@ export async function comment(c: Ctx, a: { id?: unknown; body?: unknown }) {
   })
 }
 
+/** Into the trash: off the board, still restorable from Activity, Trash. */
 export async function deleteTask(c: Ctx, a: { id?: unknown }) {
   person(c)
   const t = await findTask(c, a.id)
+  const n = named(t, t.project.key)
   const now = new Date()
-  await prisma.task.update({
-    where: { id: t.id },
-    data: { deletedAt: now, updatedAt: now },
+  await prisma.$transaction(async (tx) => {
+    await tx.task.update({
+      where: { id: t.id },
+      data: { deletedAt: now, deletedBy: c.me.id, updatedAt: now },
+    })
+    await record(tx, c, {
+      action: "task.deleted",
+      kind: "task",
+      subject: { id: t.id, label: n.ref },
+      project: t.projectId,
+      summary: `Deleted ${n.ref} "${t.title}"`,
+    })
   })
-  return { ok: true, ref: `${t.project.key}-${t.number}` }
+  return { ok: true, ref: n.ref, id: t.id }
+}
+
+/** Out of the trash, back where it was. Its project has to be there too. */
+export async function restoreTask(c: Ctx, a: { id?: unknown }) {
+  person(c)
+  const t = await prisma.task.findFirst({
+    where: { id: String(a.id), workspaceId: c.ws, deletedAt: { not: null } },
+    include: { project: true },
+  })
+  if (!t) throw new LeanError("That task isn't in the trash", 404)
+  if (t.project.deletedAt)
+    throw new LeanError(`Restore the ${t.project.name} project first`)
+  const n = named(t, t.project.key)
+  return prisma.$transaction(async (tx) => {
+    const row = await tx.task.update({
+      where: { id: t.id },
+      data: { deletedAt: null, deletedBy: null, updatedAt: new Date() },
+    })
+    await record(tx, c, {
+      action: "task.restored",
+      kind: "task",
+      subject: { id: t.id, label: n.ref },
+      project: t.projectId,
+      summary: `Restored ${n.ref} "${t.title}"`,
+    })
+    return withRef(row, t.project.key)
+  })
 }
 
 export async function getTask(c: Ctx, a: { id?: unknown }) {

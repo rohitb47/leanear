@@ -97,15 +97,24 @@ model Verification {
   @@map("verification")
 }
 
+/// Billing is Stripe's, mirrored here by the webhook so a request never waits
+/// on it. A self-hosted copy has no Stripe key and never reads these.
 model Workspace {
-  id        String    @id
-  name      String
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz
-  members   Member[]
-  invites   Invite[]
-  projects  Project[]
-  tasks     Task[]
-  images    Image[]
+  id             String    @id
+  name           String
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  stripeCustomer String?   @unique @map("stripe_customer")
+  subscription   String?   @unique
+  /// Stripe's subscription status: active, past_due, canceled and the rest.
+  billingStatus  String?   @map("billing_status")
+  paidUntil      DateTime? @map("paid_until") @db.Timestamptz
+  cancelsAtEnd   Boolean   @default(false) @map("cancels_at_end")
+  members        Member[]
+  invites        Invite[]
+  projects       Project[]
+  tasks          Task[]
+  images         Image[]
+  log            Log[]
 
   @@map("workspaces")
 }
@@ -167,11 +176,11 @@ model Project {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   key         String
   name        String
-  brief       String    @default("")
   seq         Int       @default(0)
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime  @default(now()) @map("updated_at") @db.Timestamptz
   deletedAt   DateTime? @map("deleted_at") @db.Timestamptz
+  deletedBy   String?   @map("deleted_by")
   tasks       Task[]
 
   @@index([workspaceId, updatedAt], map: "projects_ws")
@@ -198,6 +207,7 @@ model Task {
   createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime   @default(now()) @map("updated_at") @db.Timestamptz
   deletedAt   DateTime?  @map("deleted_at") @db.Timestamptz
+  deletedBy   String?    @map("deleted_by")
   activity    Activity[]
 
   @@unique([projectId, number], map: "tasks_project_number")
@@ -220,6 +230,29 @@ model Activity {
 
   @@index([taskId, id], map: "activity_task")
   @@map("activity")
+}
+
+/// The workspace's history, one line per thing that happened, for the
+/// Activity tab. The sentence is written when it happens and never rebuilt, so
+/// old lines stay true after the code changes. A task's own feed is `Activity`.
+model Log {
+  id           BigInt    @id @default(autoincrement())
+  workspaceId  String    @map("workspace_id")
+  workspace    Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  /// The member who did it. Null when nobody did (Stripe, say).
+  actorId      String?   @map("actor_id")
+  actorName    String    @map("actor_name")
+  /// "task.deleted", "file.created" and the rest, from `lib/log/log.ts`.
+  action       String
+  subjectType  String    @map("subject_type")
+  subjectId    String?   @map("subject_id")
+  subjectLabel String    @map("subject_label")
+  projectId    String?   @map("project_id")
+  summary      String
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  @@index([workspaceId, id], map: "log_ws")
+  @@map("log")
 }
 
 /// Screenshots, kept in Postgres so a workspace is one database to back up.

@@ -1,6 +1,6 @@
 import "server-only"
 import { origin } from "@/lib/auth/session"
-import { getBrief, listProjects } from "@/lib/projects/projects"
+import { listProjects } from "@/lib/projects/projects"
 import {
   STATUS_NAME,
   TYPE_NAME,
@@ -27,11 +27,10 @@ import { LeanError } from "@/lib/utils"
 export const INSTRUCTIONS = `Leanear is this team's single source of truth for what's happening in each product.
 You are a member of the workspace. To work through your tasks:
 1. Call next_task. If there is none, say so and stop.
-2. Read the project's brief with get_brief before you start.
-3. move_task to "doing" when you start.
-4. Do the work. Keep notes current with update_task if the plan changes.
-5. comment what you did and how you checked it, then move_task to "done".
-If you're blocked or need a decision, comment the question and update_task the assignee back to a person.
+2. move_task to "doing" when you start.
+3. Do the work, following the repo's own CLAUDE.md. Keep the notes current with update_task if the plan changes.
+4. comment what you did and how you checked it, then move_task to "done".
+If you're blocked or need a decision, ask in a comment and update_task the assignee back to a person.
 Create tasks for follow-ups you find instead of doing unasked work.`
 
 type Json = Record<string, unknown>
@@ -47,17 +46,6 @@ export const TOOLS = [
     name: "list_projects",
     description: "Your workspace's projects and their keys.",
     inputSchema: { type: "object", properties: {} },
-    annotations: { readOnlyHint: true },
-  },
-  {
-    name: "get_brief",
-    description:
-      "A project's brief, as Markdown: what it is, how it works, the rules for building it. Read it before working on a task.",
-    inputSchema: {
-      type: "object",
-      properties: { project: str("Project key, like PRO") },
-      required: ["project"],
-    },
     annotations: { readOnlyHint: true },
   },
   {
@@ -234,16 +222,12 @@ export async function call(c: C, name: string, a: Json): Promise<string> {
       if (!ps.length) return "No projects yet."
       return ps.map((p) => `${p.key} · ${p.name}`).join("\n")
     }
-    case "get_brief": {
-      const b = await getBrief(c, a)
-      return `# ${b.name} (${b.project})\n\n${b.brief || "This project has no brief yet."}`
-    }
     case "next_task": {
       const n = await nextTask(c, a)
       if (!n)
         return `Nothing assigned to you in Todo${a.project ? ` in ${a.project}` : ""}. You're done for now.`
       const { activity } = await getTask(c, { id: n.task.id })
-      return `${await full(c, n.task, activity)}\n\nProject: ${n.project.name} (${n.project.key}). Read get_brief before you start.`
+      return `${await full(c, n.task, activity)}\n\nProject: ${n.project.name} (${n.project.key}).`
     }
     case "list_tasks": {
       const ts = await listTasks(c, a)

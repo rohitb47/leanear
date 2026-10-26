@@ -7,14 +7,14 @@ import {
   moveTask,
   updateTask,
 } from "@/lib/tasks/tasks"
-import { createTRPCRouter, workspaceProcedure } from "../init"
+import { createTRPCRouter, paidProcedure, workspaceProcedure } from "../init"
 
 // Shapes only. What a value may be (a status, a member) is checked in
 // lib/tasks, once, for the app and for agents.
 const id = z.string().min(1)
 
 export const tasksRouter = createTRPCRouter({
-  create: workspaceProcedure
+  create: paidProcedure
     .input(
       z.object({
         project: z.string(),
@@ -28,7 +28,7 @@ export const tasksRouter = createTRPCRouter({
     )
     .mutation(({ ctx, input }) => createTask(ctx.c, input)),
 
-  update: workspaceProcedure
+  update: paidProcedure
     .input(
       z.object({
         id,
@@ -40,7 +40,7 @@ export const tasksRouter = createTRPCRouter({
     )
     .mutation(({ ctx, input }) => updateTask(ctx.c, input)),
 
-  move: workspaceProcedure
+  move: paidProcedure
     .input(
       z.object({
         id,
@@ -50,11 +50,11 @@ export const tasksRouter = createTRPCRouter({
     )
     .mutation(({ ctx, input }) => moveTask(ctx.c, input)),
 
-  comment: workspaceProcedure
+  comment: paidProcedure
     .input(z.object({ id, body: z.string() }))
     .mutation(({ ctx, input }) => comment(ctx.c, input)),
 
-  delete: workspaceProcedure
+  delete: paidProcedure
     .input(z.object({ id }))
     .mutation(({ ctx, input }) => deleteTask(ctx.c, input)),
 

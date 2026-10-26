@@ -110,8 +110,9 @@ Dark only, on pure black. This overrides row-taste's System, Light, Dark
 ("I liked the dark website by default"; a quiet light was tried and rejected).
 
 The site (`apps/site`) is the reference. Its tokens live in
-`apps/site/app/globals.css`; this file and that one say the same thing. The app
-moves onto them when its turn comes.
+`apps/site/app/globals.css`, and the app (`apps/web/app/globals.css`) carries the
+same ones; this file and those say the same thing. The app is black like the site,
+edge to edge, with the demo's bar, tabs and cards on it: no framed window around it.
 
 ## Colors
 
@@ -144,8 +145,9 @@ Section heads are centred, at most 720px wide.
 ## Elevation & Depth
 
 Depth is the surface steps. A raised card (the main plan, the Leanear column) is
-`card` with a soft shadow. The product window gets the one deep shadow on the
-page.
+`card` with a soft shadow. The site's product window gets the one deep shadow on
+the page. In the app everything placed on black (cards, settings rows, dialogs,
+menus) is `paper` with a hairline; fields and secondary buttons are the soft tint.
 
 ## Shapes
 

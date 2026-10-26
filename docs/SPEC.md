@@ -11,138 +11,183 @@ what's planned, who (or which agent) is on it, and what was done.
 ## 1. Principles
 
 1. **Five things, nothing else.** Projects, tasks, statuses, activity, agents. No cycles,
-   estimates, epics, sub-tasks, custom fields, labels, priorities or due dates. Order in a
-   column is the priority: drag a card higher to make it matter more.
-2. **Agents are members.** An agent has a name, an avatar and a key. It shows up in
-   assignee menus and activity exactly like a person. Agents are free.
+   estimates, epics, sub-tasks, custom fields, labels, priorities or due dates. A
+   project's rules live in its own repo (its `CLAUDE.md`), never in Leanear. Order in a column is the priority: drag a card
+   higher to make it matter more.
+2. **Agents are members.** An agent has a name, a face and a key. It shows up in assignee
+   menus and activity exactly like a person.
 3. **One code path.** The app (tRPC) and the MCP server call the same functions in
-   `apps/web/lib/` (docs/data-access.md). An agent can do everything a person can do with tasks, and
-   nothing more (no settings, no keys, no members).
-4. **Leanear brand.** See `DESIGN.md`: Bricolage Grotesque headings, Geist body, Geist Mono for ids and metadata, one orange accent
-   per view, hairline columns, ledger rows. Motion comes from one spring engine
-   (`packages/ui/src/spring.ts`): interruptible, damping ratio plus response.
-5. **Runs on three settings.** `pnpm dev` needs a Postgres (`docker compose up -d`), a secret
-   its own URL and a GitHub OAuth app, locally and in production.
+   `apps/web/lib/` (docs/data-access.md). An agent can do everything a person can do with
+   tasks, and nothing more (no settings, no keys, no members).
+4. **The app is the site's demo, for real.** Same window, same bar, same cards. `DESIGN.md` holds the look.
+5. **Runs on a few settings.** A Postgres, a secret, its own URL and a GitHub OAuth app.
+   Stripe's two keys turn on Cloud billing; without them there's no plan and no caps.
 
 ## 2. Vocabulary
 
 | Thing      | Rules                                                                                                                                                             |
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Workspace  | Created on first sign-in. Holds people, agents and projects. A person can belong to several and switch between them.                                              |
+| Workspace  | Created on first sign-in. Holds people, agents and projects, and on Cloud the plan. A person can belong to several and switch between them.                       |
 | Person     | Signed in with GitHub. Role is `owner` or `member`. Owners manage people; anyone manages agents and projects.                                                     |
 | Agent      | A workspace member with a name and one or more keys (`lk_…`). Only a hash of each key is stored. Keys show the last four characters and when they were last used. |
-| Project    | A name, a key of 2 to 5 capital letters (unique in the workspace, fixed once tasks exist) and a brief in Markdown.                                                |
+| Project    | A name and a key of 2 to 5 capital letters (unique in the workspace, fixed once tasks exist).                                                                     |
 | Task       | `KEY-n` id, title, notes (Markdown), type, status, assignee, position.                                                                                            |
 | Type       | `bug`, `feature`, `idea`.                                                                                                                                         |
 | Status     | `backlog`, `todo`, `doing`, `done`, plus `canceled` (off the board, reachable from the status menu and search).                                                   |
 | Activity   | Append-only log per task: created, moved, assigned, renamed, retyped, notes edited (keeps the previous notes), commented. Each entry has an actor.                |
 | Screenshot | An image pasted into a task, stored in Postgres, served from `/i/<id>` to workspace members only.                                                                 |
+| Plan       | Cloud only: $9 a month for the workspace, through Stripe. 10 projects, 20 people, 5 agents. No trial. Self-hosted has no plan and no caps.                        |
 
 ## 3. Screens
 
-All screens share one top bar: wordmark left, tabs centre (Board, My Tasks, Brief,
-Settings), search (⌘K), the accent **New task** button (C) and the avatar right. On phones
-the tabs drop to a second row and the button shrinks to a plus.
+The app is black like the site, edge to edge, with no framed panel around it. Cards,
+dialogs and menus on it are the one darker shade with a hairline.
+
+Two levels: the workspace, and a project in it. Leanear opens at Home, the workspace's.
+The bar says where you are on the left (the workspace's name, or a project's name and
+key), with a menu to Home and every project. Its three tabs, with a pill that slides
+between them, are Home, Activity and Settings for the workspace, and Board, Activity and
+Settings for a project. On the right: search (⌘K) and your face. The bar carries no
+action: things are made where they live (a column's plus, C, ⌘K, a row in Settings).
+
+Anything that can't be undone asks first in a designed dialog, never the browser's.
+Multi-step flows (adding an agent, a new key, inviting someone) finish in a dialog of
+their own.
+
+Motion is for things that happen now and then. What's done all day doesn't animate:
+switching tabs, ⌘K, keyboard status changes and counts change at once. Forms keep their
+buttons in a pinned footer, so the next step is never below the fold.
 
 ### 3.1 Sign in
 
-Mark, "Sign in to Leanear", Continue with GitHub (accent). That's the only way in; the first
-sign-in makes the account. An invite link
-(`/join/<token>`) shows the workspace being joined, and sign-in comes back to it.
+Mark, "Sign in to Leanear", Continue with GitHub (accent). That's the only way in; the
+first sign-in makes the account. An invite link (`/join/<token>`) shows the workspace
+being joined, and sign-in comes back to it. A full Cloud workspace says so.
 
 ### 3.2 Onboarding
 
-Two steps, sliding the way you are going, with progress dots.
+One thing per screen, sliding the way you're going, with progress dots.
 
 1. **What are you building?** One field. The key fills itself in (`Provida` → `PRO`,
    `Two Words` → `TW`) and can be edited.
-2. **Bring your agent.** Name the agent (default Claude), pick Claude Code, Codex or
-   Cursor, copy the one-line command with a freshly minted key. "I've added it" or
-   "Skip for now".
+2. **The plan** (Cloud only): the $9 card from the site's pricing. Stripe Checkout takes
+   the company's name, address and tax id for the invoice, then comes back to step 3.
+3. **Bring your agent.** Pick the tool (Claude Code, Cursor, Codex, Copilot, Windsurf),
+   name it, make its key, copy the line for that tool. It then waits, and says the
+   moment the agent first calls in.
+4. **Let it fill the board.** The setup skill for Claude Code and the prompt for any other
+   agent: it reads the repo and makes the first tasks.
 
-### 3.3 Board
+### 3.3 Home
 
-Title row: project name, `KEY · n tasks`, and project keys as pills to switch project.
-Four hairline columns: Backlog, Todo, Doing, Done, each with a count and a plus.
+The workspace's name and a card per project: its key and name, how many tasks in each
+status, and the faces of whoever has something in Doing (agents with their ring). New
+project is the last card. Under them, **On your plate**: Todo and Doing across every
+project, yours and your agents', Doing first; each opens its task. Then **Lately**, the
+last few lines of activity, and a link to all of it.
 
-Cards are ledger rows: id, type, assignee avatar, title. Interactions:
+### 3.4 Board
 
-- Click opens the task panel. The card stays highlighted.
+Five columns with no dividers, always: Backlog, Todo, Doing, Done and Canceled. A status
+mark, name and count on each head, and a plus on hover (except Canceled). Every task is
+its own card: id, type, assignee's face, title.
+
+- Click opens the task. The card keeps an outline.
 - Drag with a mouse after 5px, or long-press 280ms on touch. The card lifts (scale 1.035,
   lifted shadow) and follows the pointer 1:1. A dashed slot shows where it will land and
-  the other cards make room with FLIP springs.
+  the other cards glide out of the way.
 - Throw: on release the landing spot is projected from the release velocity, so a flick
   lands where it was heading. Escape cancels and springs the card home.
-- The column edges auto-scroll while dragging.
-- A card an agent is working on (in Doing and assigned to an agent) carries an ink
-  outline, on the board and in My Tasks.
+- Columns scroll on their own; near an edge they scroll while dragging.
+- An agent in Doing has a quiet ring turning round its face.
+- What someone else just did shows for a few seconds as a line at the bottom ("Claude
+  picked up LEA-12"); click it to open the task.
+- An empty project offers New task and Bring a codebase.
 
-### 3.4 Task panel
+### 3.5 Task
 
-Slides in from the right over the board (480px, full width on phones). Drag its top bar to
-the right to put it away; it follows the throw. Contents:
+Opens as a dialog over the board, the board dimmed behind (720px wide, a steady
+height; full screen on phones). Click outside or press Escape to close it; Escape in a
+field leaves the field first. Contents:
 
-- `KEY-n`, type, Copy id, close.
+- `KEY-n`, Copy, a ⋯ menu (Copy link, Cancel task, Delete task), close. Delete moves it
+  to the trash at once, with Undo on the toast.
 - Title, editable in place.
 - Property pills: status, type, assignee. Each opens a menu. Keys 1 to 4 set the status
-  while the panel is open, and the card visibly moves on the board behind.
-- Notes rendered as Markdown. Edit swaps to a textarea; pasting an image uploads it and
-  inserts it. Save writes an activity entry that keeps the old notes.
-- Activity feed, newest last, new entries rise in.
-- Composer: "Comment, or @Claude to hand it over". Mentioning an agent or person by name
-  assigns the task to them.
-- Delete task (in a ⋯ menu, with confirm).
+  while the task is open.
+- Notes rendered as Markdown. Edit swaps to the coloured editor; pasting an image uploads
+  it and inserts it. Save writes an activity entry that keeps the old notes.
+- Activity, newest last; new entries rise in.
+- Composer: "Comment, or @Claude to hand it over". Typing @ lists the members to pick
+  (arrows and Enter, or a click); mentioning one hands the task to them.
 
-### 3.5 New task
+### 3.6 New task
 
-Press C or the button: the dialog grows out of whatever opened it. Title (required), notes,
-a paste zone for screenshots, type and assignee pickers, status preset by the column's plus.
-Created tasks land at the top of their column.
+C or New task opens a dialog in the middle of the screen. Its project (the one in view,
+or the last), title, notes in the coloured editor, pasted screenshots, and the status,
+type and assignee pills. With more than one project, the project is a pill too. Enter or ⌘Enter adds
+it at the top of its column.
 
-### 3.6 Command menu (⌘K)
+### 3.7 Activity
 
-Actions (New task, Go to …, Switch theme, Switch project) and tasks matched by id, title or
-notes. Arrow keys, Enter, Escape.
+At Home, everything that happened in the workspace; in a project, only its lines. Newest first, grouped by day: each line the
+doer's face, the sentence written when it happened ("Moved LEA-12 to Done"), who and
+which project under it, and when. Filter by who and by kind (tasks, projects, people and
+agents, workspace). Clicking a line opens what it's about. Agents' lines
+look like everyone's.
 
-### 3.7 My Tasks
+**Trash**, beside it (a project's, or all of it at Home): deleted tasks and projects, who deleted them and when, each with
+Restore. A task comes back once its project is back; a project once its key is free. Nothing empties the trash on its own.
 
-Todo and Doing across every project, assigned to you or to any agent, grouped by project,
-Doing first.
+### 3.8 Settings
 
-### 3.8 Brief
+A project's Settings is just the project: name, key (fixed once there are tasks), delete
+when empty. The workspace's Settings, at Home, is one column of grey cards:
 
-One page per project in Markdown, rendered as a document. Edit in place. Agents read it
-before every task through `get_brief`.
+- **Members**: people with role, agents with their masked key and when they last called
+  in, open invite links. Add an agent opens a dialog (the same flow as onboarding), and
+  so does Invite someone (owners; it makes a link valid 7 days). A ⋯ menu per member:
+  new key (shown once in a dialog), revoke a key, make owner, remove; revoking and
+  removing ask first.
+- **Plan** (Cloud): price, renewal date, how full the workspace is, Billing (Stripe's
+  portal for the card, invoices and cancelling).
+- **Workspace**: name. **You**: sign out. Switching workspace is in your face's menu.
 
-### 3.9 Settings
+### 3.9 Command menu (⌘K)
 
-Sections in ledger rows:
+Actions (New task, Go to Home, the board, a project's or all activity, Open the trash,
+Workspace settings, Add an agent, New project, Bring a codebase, Switch project), and while typing, tasks by id, title or notes.
 
-- **Members**: people with role. Owners create an invite link (valid 7 days, reusable until
-  revoked) and remove members.
-- **Agents**: add (key shown once with the connect command), new key, revoke key, remove.
-- **Projects**: add, rename, change key while empty, delete when empty.
-- **Workspace**: rename; switch workspace if you belong to more than one.
-- **Appearance**: System, Light, Dark.
-- Sign out.
+### 3.10 The plan screen
 
-### 3.10 Keyboard
+A Cloud workspace without a running plan sees only its plan card (and sign out). Agents
+get the same refusal over MCP. Past due still works while Stripe retries.
 
-| Key         | Does                                  |
-| ----------- | ------------------------------------- |
-| C           | New task                              |
-| ⌘K / Ctrl K | Command menu                          |
-| B, M, R, S  | Board, My Tasks, Brief, Settings      |
-| 1 to 4      | Status of the open task               |
-| Escape      | Close the top layer, or cancel a drag |
+### 3.11 God mode
+
+For working on Leanear itself: resets and test data, in your face's menu. It exists
+only under `next dev` on a local database (`lib/dev/god-mode.ts`); anywhere else the
+menu row is gone and every procedure is a 404. Fill a demo project, add or clear
+tasks, clear the activity, empty the trash, revoke keys never used, mark the
+plan paid or unpaid, start over.
+
+### 3.12 Keyboard
+
+| Key            | Does                                                      |
+| -------------- | --------------------------------------------------------- |
+| C              | New task                                                  |
+| ⌘K / Ctrl K    | Command menu                                              |
+| G then H/B/A/S | Home, Board, Activity, Settings (at the level you are on) |
+| 1 to 4         | Status of the open task                                   |
+| Escape         | Close the top layer, or cancel a drag                     |
 
 ## 4. Live updates
 
-Everyone sees the same board. The client polls `workspace.sync` with the last cursor every 3s while
-the tab is visible (and at once on focus). The server returns every project, task and
-member row changed since the cursor (deletes come back as tombstones) and the new activity
-for the task that is open. Changes from others animate in with the same FLIP springs as
-your own. All your own changes are optimistic and reconciled with the server's reply.
+Everyone sees the same board. The client polls `workspace.sync` with the last cursor every
+3s while the tab is visible (and at once on focus). The server returns every project,
+task and member row changed since the cursor (deletes come back as
+tombstones), what other members just did, and the new activity for the open task. Your
+own changes are optimistic and reconciled with the server's reply.
 
 ## 5. MCP
 
@@ -151,25 +196,25 @@ Endpoint: `https://cloud.leanear.app/mcp`. Streamable HTTP, stateless, JSON resp
 Requests are rate limited to 120 a minute per key.
 
 ```
-claude mcp add --transport http leanear https://cloud.leanear.app/mcp --header "Authorization: Bearer lk_…"
+claude mcp add --scope user --transport http leanear https://cloud.leanear.app/mcp --header "Authorization: Bearer lk_…"
 ```
 
-| Tool            | Does                                                                          | Arguments                                                                |
-| --------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------ |
-| `list_projects` | Projects and their keys                                                       | none                                                                     |
-| `get_brief`     | A project's brief as Markdown                                                 | `project`                                                                |
-| `next_task`     | Top Todo assigned to this agent, with notes and brief title. Empty when none. | `project?`                                                               |
-| `list_tasks`    | Filtered tasks                                                                | `project?`, `status?`, `type?`, `assignee?` (`me` works), `q?`, `limit?` |
-| `get_task`      | One task with notes and activity                                              | `id`                                                                     |
-| `create_task`   | New task at the top of its column                                             | `project`, `title`, `notes?`, `type?`, `status?`, `assignee?`            |
-| `update_task`   | Change title, notes, type or assignee                                         | `id`, `title?`, `notes?`, `type?`, `assignee?`                           |
-| `move_task`     | New status, optional comment                                                  | `id`, `status`, `comment?`                                               |
-| `comment`       | Post on a task                                                                | `id`, `body`                                                             |
-| `attach_image`  | Upload a base64 image; returns a Markdown link                                | `id`, `data`, `mime`                                                     |
+| Tool            | Does                                                                     | Arguments                                                                |
+| --------------- | ------------------------------------------------------------------------ | ------------------------------------------------------------------------ |
+| `list_projects` | Projects and their keys                                                  | none                                                                     |
+| `next_task`     | Top Todo assigned to this agent, with notes and activity. Empty if none. | `project?`                                                               |
+| `list_tasks`    | Filtered tasks                                                           | `project?`, `status?`, `type?`, `assignee?` (`me` works), `q?`, `limit?` |
+| `get_task`      | One task with notes and activity                                         | `id`                                                                     |
+| `create_task`   | New task at the top of its column                                        | `project`, `title`, `notes?`, `type?`, `status?`, `assignee?`            |
+| `update_task`   | Change title, notes, type or assignee                                    | `id`, `title?`, `notes?`, `type?`, `assignee?`                           |
+| `move_task`     | New status, optional comment                                             | `id`, `status`, `comment?`                                               |
+| `comment`       | Post on a task                                                           | `id`, `body`                                                             |
+| `attach_image`  | Upload a base64 image; returns a Markdown link                           | `id`, `data`, `mime`                                                     |
 
 The loop: assign tasks to the agent, then tell it "Work through my Leanear tasks." It calls
-`next_task`, reads `get_brief`, moves the task to Doing, does the work, comments what it
-did, and moves it to Done (or back to a person with a question).
+`next_task`, moves the task to Doing, does the work (following the repo's own
+`CLAUDE.md`), comments what it did and how it checked it, and moves it to Done, or asks
+in a comment and hands it back to a person when it's blocked.
 
 ## 6. Data model (Postgres)
 
@@ -177,20 +222,24 @@ did, and moves it to Done (or back to a person with a question).
 user, session,
 account, verification,
              Better Auth's tables (see prisma/schema.prisma)
-workspaces   id, name, created_at
+workspaces   id, name, created_at, stripe_customer?, subscription?, billing_status?,
+             paid_until?, cancels_at_end
 members      id, workspace_id, kind(person|agent), user_id?, name, avatar_url?, role(owner|member),
              removed_at?, updated_at
 agent_keys   id, member_id, hash, hint, last_used_at?, revoked_at?, created_at
 invites      id, workspace_id, token, created_by, expires_at, revoked_at?
-projects     id, workspace_id, key, name, brief, seq, created_at, updated_at, deleted_at?
+projects     id, workspace_id, key, name, seq, created_at, updated_at, deleted_at?,
+             deleted_by?
 tasks        id, project_id, workspace_id, number, title, notes, type, status, assignee_id?,
-             position(float), created_by, created_at, updated_at, deleted_at?
+             position(float), created_by, created_at, updated_at, deleted_at?, deleted_by?
 activity     id, task_id, workspace_id, actor_id, kind, data(jsonb), body?, created_at
+log          id, workspace_id, actor_id?, actor_name, action, subject_type, subject_id?,
+             subject_label, project_id?, summary, created_at
 images       id, workspace_id, task_id?, mime, bytes(bytea), created_by, created_at
 ```
 
-`updated_at` on members, projects and tasks drives sync. Positions are floats: a new task
-takes `min - 1` in its column and a drop takes the midpoint of its neighbours.
+`updated_at` on members, projects and tasks drives sync. Positions are floats: a
+new task takes `min - 1` in its column and a drop takes the midpoint of its neighbours.
 
 ## 7. Auth
 
@@ -206,7 +255,19 @@ takes `min - 1` in its column and a drop takes the midpoint of its neighbours.
 - Every API and MCP call resolves to a member in a workspace, and every query is scoped to
   that workspace.
 
-## 8. Settings (environment)
+## 8. Billing (Cloud)
+
+- On when `STRIPE_SECRET_KEY` is set. The app makes its own price the first time
+  (lookup key `leanear_cloud_monthly`, $9 USD a month), so there's nothing to set up in
+  Stripe but the keys, the webhook and the customer portal's settings.
+- Starting the plan is Stripe Checkout in subscription mode, collecting the billing
+  address and tax id so a company card gets a proper invoice. The return page records the
+  subscription at once; the webhook (`/api/stripe`) keeps it true after that.
+- A workspace runs while its subscription is active, trialing or past due. Otherwise the
+  app shows the plan screen, and task writes and MCP calls are refused.
+- Caps (10 projects, 20 people, 5 agents) are checked where each is made.
+
+## 9. Settings (environment)
 
 | Variable                     | Needed | What                                                                                                           |
 | ---------------------------- | ------ | -------------------------------------------------------------------------------------------------------------- |
@@ -214,23 +275,16 @@ takes `min - 1` in its column and a drop takes the midpoint of its neighbours.
 | `BETTER_AUTH_SECRET`         | Always | 32+ random bytes (`openssl rand -base64 32`). Signs sessions.                                                  |
 | `PUBLIC_URL`                 | Always | Where the app runs, like `https://cloud.leanear.app`. Better Auth's base URL and the MCP URL shown in the app. |
 | `GITHUB_ID`, `GITHUB_SECRET` | Always | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github`                                            |
+| `STRIPE_SECRET_KEY`          | Cloud  | Stripe secret or restricted key. Turns on the plan and the caps.                                               |
+| `STRIPE_WEBHOOK_SECRET`      | Cloud  | Signing secret of the webhook at `<PUBLIC_URL>/api/stripe`.                                                    |
 
 There are no migrations: `pnpm db:push` makes the database match `prisma/schema.prisma`.
 
-## 9. Repository
-
-```
-apps/site     leanear.app, the landing page and docs (Vercel project "leanear")
-apps/web      cloud.leanear.app, the product (Vercel project "leanear-app")
-packages/ui   the spring engine and the mark, shared by both
-docs/         this file, architecture.md and data-access.md
-```
-
 ## 10. Out of scope for now
 
-Billing, email (invites are links), sign-in other than GitHub, notifications, MCP OAuth sign-in (so ChatGPT and Gemini
-connectors wait; header-based clients work today), GitHub issue sync, mobile apps, public
-boards, file attachments other than images.
+Email (invites are links), sign-in other than GitHub, notifications, MCP OAuth sign-in (so
+ChatGPT and Gemini connectors wait; header-based clients work today), GitHub issue sync,
+mobile apps, public boards, file attachments other than images, a light theme.
 
 ## 11. Site (leanear.app)
 
@@ -242,11 +296,8 @@ boards, file attachments other than images.
 - **The demo is the product as it is:** no keyboard hints, no chrome that isn't the
   product. A real board (Linear is the reference): columns with no dividers, a status icon
   and count on each head, every task its own card, the active tab a filled pill. A fixed
-  height; extra cards fade out at the bottom. Three clickable tabs: Board, Context (the
-  project's `.md` files, readable and editable in place, Markdown coloured like a real
-  editor) and Settings (name, key, members, agents with masked keys). An action bar on
-  the right of the header: New task on Board, New file on Context. No looping morphs.
-  "Brief" is retired as a word: it's Context.
+  height; extra cards fade out at the bottom. Two clickable tabs: Board and Settings (name,
+  key, members, agents with masked keys). No action button in its bar, like the app. No looping morphs.
 - **Agents:** coding agents only (Claude Code, Cursor, Codex, Copilot, Windsurf). ChatGPT,
   Grok and the like wait for MCP sign-in. The heading is "Your agents join the team".
 - **Feature cards idle:** each drawing has one quiet loop that acts out its sentence.

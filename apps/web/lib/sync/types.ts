@@ -39,7 +39,6 @@ export type Project = {
   id: string
   key: string
   name: string
-  brief: string
   deleted: boolean
 }
 
@@ -89,14 +88,33 @@ export type Sync = {
   members: Member[]
   projects: Project[]
   tasks: Task[]
+  /** What other members just did, newest last, for the live line on the board. */
+  recent: Activity[]
   activity?: { taskId: string; items: Activity[] }
 }
+
+/** Off on a self-hosted copy. On Cloud, the plan and how full it is. */
+export type Billing =
+  | { on: false }
+  | {
+      on: true
+      active: boolean
+      status: string | null
+      paidUntil: string | null
+      cancelsAtEnd: boolean
+      cents: number
+      limits: { projects: number; people: number; agents: number }
+      usage: { projects: number; people: number; agents: number }
+    }
 
 export type Snapshot = Sync & {
   me: Me
   workspace: { id: string; name: string }
   workspaces: { id: string; name: string }[]
   mcpUrl: string
+  billing: Billing
+  /** God mode: `next dev` on a local database only. */
+  god: boolean
 }
 
 export type AgentKey = {
@@ -108,3 +126,28 @@ export type AgentKey = {
 }
 export type Invite = { id: string; token: string; expiresAt: string }
 export type SettingsData = { keys: AgentKey[]; invites: Invite[] }
+
+/** A line in the workspace's history: who, what, when, in a frozen sentence. */
+export type LogEntry = {
+  id: number
+  actorId: string | null
+  actorName: string
+  action: string
+  kind: "task" | "project" | "member" | "workspace"
+  subjectId: string | null
+  label: string
+  projectId: string | null
+  summary: string
+  createdAt: string
+}
+
+/** Something deleted, still restorable. */
+export type TrashItem = {
+  kind: "task" | "project"
+  id: string
+  label: string
+  title: string
+  projectKey: string | null
+  deletedAt: string
+  deletedBy: string | null
+}

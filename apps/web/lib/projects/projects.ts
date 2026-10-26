@@ -3,13 +3,14 @@ import type { Project as ProjectRow } from "@prisma/client"
 import { prisma } from "@/lib/prisma"
 import type { Project } from "@/lib/sync/types"
 import { person, type Ctx } from "@/lib/workspace/context"
+import { withinPlan } from "@/lib/billing/billing"
+import { record } from "@/lib/log/log"
 import { LeanError, id, text } from "@/lib/utils"
 
 export const toProject = (r: ProjectRow): Project => ({
   id: r.id,
   key: r.key,
   name: r.name,
-  brief: r.brief,
   deleted: !!r.deletedAt,
 })
 
@@ -58,31 +59,28 @@ export async function listProjects(c: Ctx) {
 
 export async function createProject(
   c: Ctx,
-  a: { name?: unknown; key?: unknown; brief?: unknown }
+  a: { name?: unknown; key?: unknown }
 ) {
   person(c)
   const name = text(a.name, "Name", 60)
   const key = await freeKey(c, a.key)
-  const brief = text(a.brief, "Brief", 50_000, false)
+  await withinPlan(c, "projects")
   const row = await prisma.project.create({
-    data: { id: id(), workspaceId: c.ws, key, name, brief },
+    data: { id: id(), workspaceId: c.ws, key, name },
   })
+  await note(c, row, "created", `Made the ${name} project (${key})`)
   return toProject(row)
 }
 
 export async function updateProject(
   c: Ctx,
-  a: { project?: unknown; name?: unknown; key?: unknown; brief?: unknown }
+  a: { project?: unknown; name?: unknown; key?: unknown }
 ) {
+  person(c)
   const p = await findProject(c, a.project)
-  const data: { name?: string; brief?: string; key?: string } = {}
-  if (a.name !== undefined) {
-    person(c)
-    data.name = text(a.name, "Name", 60)
-  }
-  if (a.brief !== undefined) data.brief = text(a.brief, "Brief", 50_000, false)
+  const data: { name?: string; key?: string } = {}
+  if (a.name !== undefined) data.name = text(a.name, "Name", 60)
   if (a.key !== undefined) {
-    person(c)
     const key = text(a.key, "Key", 5).toUpperCase()
     if (key !== p.key) {
       if (p.seq > 0)
@@ -94,6 +92,15 @@ export async function updateProject(
     where: { id: p.id },
     data: { ...data, updatedAt: new Date() },
   })
+  if (data.name && data.name !== p.name)
+    await note(c, row, "renamed", `Renamed ${p.name} to ${data.name}`)
+  if (data.key && data.key !== p.key)
+    await note(
+      c,
+      row,
+      "rekeyed",
+      `Changed ${row.name}'s key from ${p.key} to ${data.key}`
+    )
   return toProject(row)
 }
 
@@ -105,14 +112,48 @@ export async function deleteProject(c: Ctx, a: { project?: unknown }) {
   })
   if (live) throw new LeanError("Move or delete its tasks first")
   const now = new Date()
-  await prisma.project.update({
+  const row = await prisma.project.update({
     where: { id: p.id },
-    data: { deletedAt: now, updatedAt: now },
+    data: { deletedAt: now, deletedBy: c.me.id, updatedAt: now },
   })
+  await note(c, row, "deleted", `Deleted the ${p.name} project (${p.key})`)
   return { ok: true }
 }
 
-export async function getBrief(c: Ctx, a: { project?: unknown }) {
-  const p = await findProject(c, a.project)
-  return { project: p.key, name: p.name, brief: p.brief }
+/** Back from the trash, if no live project has taken its key since. */
+export async function restoreProject(c: Ctx, a: { id?: unknown }) {
+  person(c)
+  const p = await prisma.project.findFirst({
+    where: { id: String(a.id), workspaceId: c.ws, deletedAt: { not: null } },
+  })
+  if (!p) throw new LeanError("That project isn't in the trash", 404)
+  const taken = await prisma.project.findFirst({
+    where: { workspaceId: c.ws, key: p.key, deletedAt: null },
+  })
+  if (taken)
+    throw new LeanError(
+      `${p.key} is another project's key now. Change that one first.`
+    )
+  await withinPlan(c, "projects")
+  const row = await prisma.project.update({
+    where: { id: p.id },
+    data: { deletedAt: null, deletedBy: null, updatedAt: new Date() },
+  })
+  await note(c, row, "restored", `Restored the ${p.name} project (${p.key})`)
+  return toProject(row)
+}
+
+function note(
+  c: Ctx,
+  p: { id: string; key: string },
+  action: string,
+  summary: string
+) {
+  return record(prisma, c, {
+    action: `project.${action}`,
+    kind: "project",
+    subject: { id: p.id, label: p.key },
+    project: p.id,
+    summary,
+  })
 }

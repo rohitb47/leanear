@@ -1,38 +1,53 @@
 "use client"
 
+import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useState } from "react"
-import { usePresence } from "@/lib/ui/motion"
-import { onToast } from "@/lib/store/store"
+import { onToast, type ToastAction } from "@/lib/store/store"
 
+/** One short line at the bottom, for a moment. An Undo keeps it up longer. */
 export function Toasts() {
-  const [msg, setMsg] = useState<string | null>(null)
-  const [open, setOpen] = useState(false)
-  const { mounted, ref } = usePresence<HTMLDivElement>(
-    open,
-    { y: 14, o: 0 },
-    { y: 14, o: 0 },
-    0.3,
-    0.28
-  )
+  const [msg, setMsg] = useState<{
+    text: string
+    action?: ToastAction
+    n: number
+  } | null>(null)
   useEffect(() => {
     let t = 0
-    const off = onToast((m) => {
-      setMsg(m)
-      setOpen(true)
+    let n = 0
+    const off = onToast((text, action) => {
+      setMsg({ text, action, n: ++n })
       clearTimeout(t)
-      t = window.setTimeout(() => setOpen(false), 2000)
+      t = window.setTimeout(() => setMsg(null), action ? 6000 : 2400)
     })
     return () => {
       off()
       clearTimeout(t)
     }
   }, [])
-  if (!mounted) return null
   return (
-    <div className="toastwrap">
-      <div className="toast" role="status" ref={ref}>
-        {msg}
-      </div>
-    </div>
+    <AnimatePresence>
+      {msg && (
+        <motion.div
+          className="toast"
+          role="status"
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, transition: { duration: 0.12 } }}
+          transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
+        >
+          <span>{msg.text}</span>
+          {msg.action && (
+            <button
+              onClick={() => {
+                msg.action!.run()
+                setMsg(null)
+              }}
+            >
+              {msg.action.label}
+            </button>
+          )}
+        </motion.div>
+      )}
+    </AnimatePresence>
   )
 }

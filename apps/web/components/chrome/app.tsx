@@ -1,29 +1,35 @@
 "use client"
 
-import { Mark } from "@leanear/ui/mark"
-import { set, spring } from "@leanear/ui/spring"
 import {
   createContext,
   useCallback,
   useContext,
   useEffect,
-  useLayoutEffect,
   useMemo,
   useRef,
   useState,
-  useSyncExternalStore,
 } from "react"
+import { MotionConfig } from "motion/react"
 import type { Snapshot, Status } from "@/lib/sync/types"
 import { STATUSES } from "@/lib/sync/types"
 import { loadActivity, patch } from "@/lib/store/patch"
 import { api as trpc } from "@/trpc/client"
-import { Board } from "@/components/board/board"
-import { I } from "@/components/common/icons"
-import { NewTask } from "@/components/task/new-task"
-import { Onboarding } from "@/components/workspace/onboarding"
+import { Bar } from "@/components/chrome/bar"
 import { Palette } from "@/components/chrome/palette"
+import { ConfirmHost } from "@/components/chrome/confirm"
+import { Toasts } from "@/components/chrome/toast"
+import { AddAgentDialog } from "@/components/workspace/add-agent"
+import { Activity } from "@/components/activity/activity"
+import { Board } from "@/components/board/board"
+import { GodMode } from "@/components/dev/god-mode"
+import { ProjectSettings, Settings } from "@/components/settings/settings"
+import { Home } from "@/components/home/home"
+import { NewProject } from "@/components/workspace/new-project"
+import { Onboarding, type Step } from "@/components/workspace/onboarding"
+import { Paywall } from "@/components/workspace/plan"
+import { Setup } from "@/components/workspace/setup"
+import { NewTask } from "@/components/task/new-task"
 import { Panel } from "@/components/task/panel"
-import { Settings } from "@/components/workspace/settings"
 import {
   activate,
   applySync,
@@ -35,18 +41,23 @@ import {
   useData,
   type Data,
 } from "@/lib/store/store"
-import { Toasts } from "@/components/chrome/toast"
-import { Av } from "@/components/common/badges"
-import { Brief, Mine } from "@/components/board/views"
 
 /* ───────── Routes ───────── */
 
+/**
+ * The views inside the window. Home is the workspace's; Board is a project's;
+ * Activity and Settings are either, by whether the route names a project.
+ * God mode is one too, but never in the tab bar.
+ */
+export type Tab = "home" | "board" | "activity" | "settings" | "god"
+
 export type Route =
-  | { view: "board"; key: string; task?: string }
-  | { view: "brief"; key: string; task?: string }
-  | { view: "mine"; task?: string }
-  | { view: "settings"; task?: string }
-  | { view: "welcome" }
+  | { view: Tab; key?: string; trash?: boolean; task?: string }
+  | { view: "welcome"; step?: Step }
+  | { view: "plan" }
+
+/** Paths of the workspace's own pages. Project keys are capitals, so never these. */
+const OWN = ["activity", "settings", "god", "welcome"]
 
 const LAST = "lean-project"
 let lastKey: string | null = null
@@ -61,36 +72,53 @@ function remembered(d: Data, last = lastKey) {
   return (last && ps.find((p) => p.key === last)?.key) || ps[0]?.key || null
 }
 
-export function parse(
-  d: Data,
-  path: string,
-  search: string,
-  last = lastKey
-): Route {
+export function parse(d: Data, path: string, search: string): Route {
   const task = new URLSearchParams(search).get("t") ?? undefined
-  const parts = path.split("/").filter(Boolean)
-  if (!Object.keys(d.projects).length) return { view: "welcome" }
-  if (parts[0] === "welcome") return { view: "welcome" }
-  if (parts[0] === "mine") return { view: "mine", task }
-  if (parts[0] === "settings") return { view: "settings", task }
-  const key = parts[0]?.toUpperCase()
-  if (key && projectByKey(d, key))
-    return parts[1] === "brief"
-      ? { view: "brief", key, task }
-      : { view: "board", key, task }
-  return { view: "board", key: remembered(d, last)!, task }
+  const parts = path.split("/").filter(Boolean).map(decodeURIComponent)
+  if (parts[0] === "welcome")
+    return { view: "welcome", step: parts[1] as Step | undefined }
+  if (!parts.length) return { view: "home", task }
+  if (OWN.includes(parts[0])) {
+    const view = parts[0] as Tab
+    return { view, trash: parts[1] === "trash", task }
+  }
+  const key = parts[0].toUpperCase()
+  if (!projectByKey(d, key)) return { view: "home", task }
+  if (parts[1] === "settings") return { view: "settings", key, task }
+  if (parts[1] === "activity")
+    return { view: "activity", key, trash: parts[2] === "trash", task }
+  return { view: "board", key, task }
 }
 
 export function href(r: Route) {
+  if (r.view === "welcome") return r.step ? `/welcome/${r.step}` : "/welcome"
+  if (r.view === "plan") return "/"
+  const at = r.key ? `/${r.key}` : ""
   const base =
-    r.view === "board"
-      ? `/${r.key}`
-      : r.view === "brief"
-        ? `/${r.key}/brief`
-        : r.view === "welcome"
-          ? "/welcome"
-          : `/${r.view}`
-  return "task" in r && r.task ? `${base}?t=${r.task}` : base
+    r.view === "home"
+      ? "/"
+      : r.view === "board"
+        ? at || "/"
+        : r.view === "activity"
+          ? `${at}/activity${r.trash ? "/trash" : ""}`
+          : `${at}/${r.view}`
+  return r.task ? `${base}?t=${r.task}` : base
+}
+
+/** The route as asked for, corrected for what exists and what's paid for. */
+function resolve(d: Data, r: Route): Route {
+  const has = Object.keys(d.projects).length > 0
+  if (!has) return { view: "welcome", step: "project" }
+  if (r.view === "welcome") return r
+  if (d.billing.on && !d.billing.active) return { view: "plan" }
+  if (r.view === "plan") return { view: "home" }
+  if (r.view === "god")
+    return d.god ? { ...r, key: undefined } : { view: "home" }
+  if (r.view === "home") return { ...r, key: undefined }
+  if (r.key && !projectByKey(d, r.key))
+    return r.view === "board" ? { view: "home" } : { ...r, key: undefined }
+  if (r.view === "board" && !r.key) return { view: "home", task: r.task }
+  return r
 }
 
 type AppApi = {
@@ -99,44 +127,17 @@ type AppApi = {
   project: string | null
   openTask: (ref: string) => void
   closeTask: () => void
-  openNew: (status?: Status, from?: HTMLElement | null) => void
+  openNew: (status?: Status) => void
   openPalette: () => void
-  setTheme: (v: "system" | "light" | "dark") => void
-  theme: "system" | "light" | "dark"
+  newProject: () => void
+  /** Bring a codebase: the one paste that connects an agent and fills the project. */
+  openSetup: () => void
+  /** Add an agent, in a dialog over wherever you are. */
+  addAgent: () => void
 }
 
 const Ctx = createContext<AppApi | null>(null)
 export const useApp = () => useContext(Ctx)!
-
-/* ───────── Theme ───────── */
-
-type Theme = "system" | "light" | "dark"
-const themeSubs = new Set<() => void>()
-function readTheme(): Theme {
-  try {
-    const v = localStorage.getItem("lean-theme")
-    if (v === "light" || v === "dark") return v
-  } catch {}
-  return "system"
-}
-const useTheme = () =>
-  useSyncExternalStore(
-    (f) => {
-      themeSubs.add(f)
-      return () => themeSubs.delete(f)
-    },
-    readTheme,
-    () => "system" as Theme
-  )
-
-/** The route as asked for, corrected for projects that don't exist (any more). */
-function resolve(d: Data, r: Route): Route {
-  const has = Object.keys(d.projects).length > 0
-  if (!has) return { view: "welcome" }
-  if ("key" in r && !projectByKey(d, r.key))
-    return { ...r, key: remembered(d)! }
-  return r
-}
 
 /* ───────── App ───────── */
 
@@ -158,7 +159,13 @@ export function App({
   }
   return (
     <StoreContext.Provider value={store}>
-      <Shell path={path} search={search} last={last} />
+      <MotionConfig
+        reducedMotion="user"
+        // Things that move glide there in about a third of a second and settle.
+        transition={{ type: "spring", bounce: 0.08, duration: 0.35 }}
+      >
+        <Shell path={path} search={search} last={last} />
+      </MotionConfig>
     </StoreContext.Provider>
   )
 }
@@ -173,16 +180,18 @@ function Shell({
   last: string | null
 }) {
   const d = useData()
-  const [asked, setRoute] = useState<Route>(() => parse(d, path, search, last))
+  const [asked, setRoute] = useState<Route>(() => parse(d, path, search))
   const route = resolve(d, asked)
-  const [newTask, setNewTask] = useState<{
-    status: Status
-    origin: { x: number; y: number } | null
-  } | null>(null)
+  const [newTask, setNewTask] = useState<{ status: Status; n: number } | null>(
+    null
+  )
   const [palette, setPalette] = useState(false)
-  const theme = useTheme()
+  const [newProject, setNewProject] = useState(false)
+  const [setup, setSetup] = useState(false)
+  const [agent, setAgent] = useState(false)
 
-  const project = "key" in route ? route.key : remembered(d)
+  // The project in view, or the last one, for New task and the like.
+  const project = ("key" in route && route.key) || remembered(d, last)
 
   const go = useCallback((r: Route, replace = false) => {
     if ("key" in r && r.key) remember(r.key)
@@ -198,8 +207,9 @@ function Shell({
     return () => window.removeEventListener("popstate", on)
   }, [])
 
-  // Keep the URL honest when the route resolves to something else (e.g. "/" → "/PRO").
+  // Keep the URL honest when the route resolves to something else ("/" → "/PRO").
   useEffect(() => {
+    if (route.view === "plan") return
     const url = href(route)
     if (url !== location.pathname + location.search)
       history.replaceState(null, "", url)
@@ -207,44 +217,19 @@ function Shell({
 
   const openTask = useCallback(
     (ref: string) => {
-      if (route.view === "welcome") return
-      go({ ...route, task: ref } as Route)
+      if (!("key" in route)) return
+      go({ ...route, task: ref })
     },
     [route, go]
   )
   const closeTask = useCallback(() => {
     if (!("task" in route) || !route.task) return
-    go({ ...route, task: undefined } as Route)
+    go({ ...route, task: undefined })
   }, [route, go])
 
-  const openNew = useCallback(
-    (status: Status = "todo", from?: HTMLElement | null) => {
-      const src = from ?? document.querySelector<HTMLElement>(".newtask")
-      const r = src?.getBoundingClientRect()
-      setPalette(false)
-      setNewTask({
-        status,
-        origin: r ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null,
-      })
-    },
-    []
-  )
-
-  const setTheme = useCallback((v: "system" | "light" | "dark") => {
-    const doit = () => {
-      if (v === "system") delete document.documentElement.dataset.theme
-      else document.documentElement.dataset.theme = v
-      try {
-        localStorage.setItem("lean-theme", v)
-      } catch {}
-      themeSubs.forEach((f) => f())
-    }
-    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches
-    const doc = document as Document & {
-      startViewTransition?: (f: () => void) => void
-    }
-    if (doc.startViewTransition && !reduced) doc.startViewTransition(doit)
-    else doit()
+  const openNew = useCallback((status: Status = "todo") => {
+    setPalette(false)
+    setNewTask({ status, n: Date.now() })
   }, [])
 
   const openTaskRef = "task" in route ? route.task : undefined
@@ -259,7 +244,6 @@ function Shell({
   useEffect(() => {
     let stop = false
     let busy = false
-    let timer = 0
     const tick = async () => {
       if (busy || stop) return
       if (document.visibilityState !== "visible") return
@@ -277,7 +261,7 @@ function Shell({
         busy = false
       }
     }
-    timer = window.setInterval(tick, 3000)
+    const timer = window.setInterval(tick, 3000)
     const now = () => void tick()
     window.addEventListener("focus", now)
     document.addEventListener("visibilitychange", now)
@@ -293,15 +277,17 @@ function Shell({
     if (openId) void loadActivity(openId).catch(() => {})
   }, [openId])
 
-  /* Keyboard */
+  /* Keyboard: C new task, ⌘K, G then B, X or S, 1 to 4 for the open task. */
+  const gAt = useRef(0)
   useEffect(() => {
     const on = (e: KeyboardEvent) => {
       const t = e.target as HTMLElement | null
       const typing = !!t?.closest?.(
         "input,textarea,select,[contenteditable='true']"
       )
+      const inApp = route.view !== "welcome" && route.view !== "plan"
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-        if (route.view === "welcome") return
+        if (!inApp) return
         e.preventDefault()
         setPalette((p) => !p)
         return
@@ -321,20 +307,31 @@ function Shell({
         e.altKey ||
         newTask ||
         palette ||
-        route.view === "welcome"
+        newProject ||
+        setup ||
+        agent ||
+        !inApp
       )
         return
       const k = e.key.toLowerCase()
-      if (k === "c") {
+      if (Date.now() - gAt.current < 900) {
+        gAt.current = 0
+        // H is home; B the project's board; A and S stay at the level you're on.
+        const here = "key" in route ? route.key : undefined
+        if (k === "h") go({ view: "home", task: openTaskRef })
+        else if (k === "b" && project)
+          go({ view: "board", key: project, task: openTaskRef })
+        else if (k === "a")
+          go({ view: "activity", key: here, task: openTaskRef })
+        else if (k === "s")
+          go({ view: "settings", key: here, task: openTaskRef })
+        return
+      }
+      if (k === "g") gAt.current = Date.now()
+      else if (k === "c") {
         e.preventDefault()
         openNew()
-      } else if (k === "b" && project)
-        go({ view: "board", key: project, task: openTaskRef })
-      else if (k === "m") go({ view: "mine", task: openTaskRef })
-      else if (k === "r" && project)
-        go({ view: "brief", key: project, task: openTaskRef })
-      else if (k === "s") go({ view: "settings", task: openTaskRef })
-      else if (open && ["1", "2", "3", "4"].includes(e.key)) {
+      } else if (open && ["1", "2", "3", "4"].includes(e.key)) {
         const s = STATUSES[+e.key - 1]
         if (s !== open.status)
           void patch(open.id, { status: s }, () =>
@@ -348,6 +345,9 @@ function Shell({
     route,
     palette,
     newTask,
+    newProject,
+    setup,
+    agent,
     open,
     openId,
     openTaskRef,
@@ -366,34 +366,23 @@ function Shell({
       closeTask,
       openNew,
       openPalette: () => setPalette(true),
-      setTheme,
-      theme,
+      newProject: () => setNewProject(true),
+      openSetup: () => setSetup(true),
+      addAgent: () => setAgent(true),
     }),
-    [route, go, project, openTask, closeTask, openNew, setTheme, theme]
+    [route, go, project, openTask, closeTask, openNew]
   )
 
-  /* View changes fade up; onboarding has its own slide. */
-  const viewKey =
-    route.view === "board" || route.view === "brief"
-      ? `${route.view}:${route.key}`
-      : route.view
-  const viewRef = useRef<HTMLDivElement>(null)
-  const lastView = useRef(viewKey)
-  useLayoutEffect(() => {
-    if (lastView.current === viewKey) return
-    lastView.current = viewKey
-    const el = viewRef.current
-    if (!el) return
-    set(el, { y: 6, o: 0 })
-    spring(el, {}, { r: 0.3 })
-  }, [viewKey])
-
-  if (route.view === "welcome") {
+  if (route.view === "welcome" || route.view === "plan") {
     return (
       <Ctx.Provider value={api}>
         <div className="app">
-          <div className="view">
-            <Onboarding />
+          <div className="frame">
+            {route.view === "welcome" ? (
+              <Onboarding step={route.step} />
+            ) : (
+              <Paywall />
+            )}
           </div>
         </div>
         <Toasts />
@@ -404,94 +393,45 @@ function Shell({
   return (
     <Ctx.Provider value={api}>
       <div className="app">
-        <Top />
-        <div className="view">
-          <div className="content" ref={viewRef}>
-            {route.view === "board" && (
-              <Board projectKey={route.key} openId={openId} />
-            )}
-            {route.view === "brief" && <Brief projectKey={route.key} />}
-            {route.view === "mine" && <Mine openId={openId} />}
-            {route.view === "settings" && <Settings />}
+        <div className="frame">
+          <Bar />
+          <div className="view">
+            {/* A tab fades up quickly, so a switch never looks like a jump. */}
+            <div key={`${route.view}:${route.key}`} className="view enter">
+              {route.view === "home" && <Home />}
+              {route.view === "board" && route.key && (
+                <Board projectKey={route.key} openId={openId} />
+              )}
+              {route.view === "activity" && (
+                <Activity projectKey={route.key} trash={!!route.trash} />
+              )}
+              {route.view === "settings" &&
+                (route.key ? (
+                  <ProjectSettings projectKey={route.key} />
+                ) : (
+                  <Settings />
+                ))}
+              {route.view === "god" && project && (
+                <GodMode projectKey={project} />
+              )}
+            </div>
+            <Panel taskId={openId} />
           </div>
-          <Panel taskId={openId} />
         </div>
       </div>
       <NewTask state={newTask} onClose={() => setNewTask(null)} />
+      <NewProject open={newProject} onClose={() => setNewProject(false)} />
+      {project && (
+        <Setup
+          open={setup}
+          onClose={() => setSetup(false)}
+          projectKey={project}
+        />
+      )}
       <Palette open={palette} onClose={() => setPalette(false)} />
+      <AddAgentDialog open={agent} onClose={() => setAgent(false)} />
+      <ConfirmHost />
       <Toasts />
     </Ctx.Provider>
-  )
-}
-
-function Top() {
-  const d = useData()
-  const { route, go, project, openNew, openPalette } = useApp()
-  const me = d.members[d.me.memberId]
-  const task = "task" in route ? route.task : undefined
-  const tab = (
-    view: "board" | "mine" | "brief" | "settings",
-    label: string
-  ) => {
-    const r: Route =
-      view === "board" || view === "brief"
-        ? { view, key: project!, task }
-        : ({ view, task } as Route)
-    return (
-      <a
-        className="tab"
-        href={href(r)}
-        aria-current={route.view === view ? "page" : undefined}
-        onClick={(e) => {
-          if (e.metaKey || e.ctrlKey || e.shiftKey) return
-          e.preventDefault()
-          go(r)
-        }}
-      >
-        {label}
-      </a>
-    )
-  }
-  return (
-    <header className="top">
-      <a
-        className="wm"
-        href={project ? `/${project}` : "/welcome"}
-        onClick={(e) => {
-          e.preventDefault()
-          if (project) go({ view: "board", key: project })
-        }}
-      >
-        <Mark />
-        <span>leanear</span>
-        {d.workspaces.length > 1 && (
-          <span className="ws hide-s">{d.workspace.name}</span>
-        )}
-      </a>
-      <nav className="tabs" aria-label="Sections">
-        {tab("board", "Board")}
-        {tab("mine", "My Tasks")}
-        {tab("brief", "Brief")}
-        {tab("settings", "Settings")}
-      </nav>
-      <div className="right">
-        <button className="btn bare" onClick={openPalette} aria-label="Search">
-          {I.search}
-          <span className="kbd hide-s">⌘K</span>
-        </button>
-        <button
-          className="btn accent newtask"
-          onClick={(e) => openNew("todo", e.currentTarget)}
-          aria-label="New task"
-        >
-          {I.plus}
-          <span className="hide-s">New task</span>
-          <span className="kbd hide-s">C</span>
-        </button>
-        <span className="hide-s">
-          <Av m={me} />
-        </span>
-      </div>
-    </header>
   )
 }

@@ -1,5 +1,6 @@
 import "server-only"
 import type { Member as MemberRow } from "@prisma/client"
+import { record } from "@/lib/log/log"
 import { prisma } from "@/lib/prisma"
 import type { Member } from "@/lib/sync/types"
 import { LeanError, text } from "@/lib/utils"
@@ -67,6 +68,8 @@ export async function renameMember(
     where: { id: m.id },
     data: { name, updatedAt: new Date() },
   })
+  if (name !== m.name)
+    await note(c, row, "member.renamed", `Renamed ${m.name} to ${name}`)
   return toMember(row)
 }
 
@@ -96,6 +99,14 @@ export async function removeMember(c: Ctx, a: { memberId?: unknown }) {
       data: { revokedAt: now },
     }),
   ])
+  await note(
+    c,
+    m,
+    "member.removed",
+    m.id === c.me.id
+      ? "Left the workspace"
+      : `Removed ${m.name}${m.kind === "agent" ? " and its keys" : ""}`
+  )
   return { ok: true }
 }
 
@@ -114,5 +125,20 @@ export async function makeOwner(c: Ctx, a: { memberId?: unknown }) {
     where: { id: m.id },
     data: { role: "owner", updatedAt: new Date() },
   })
+  await note(c, m, "member.owner", `Made ${m.name} an owner`)
   return toMember(row)
+}
+
+function note(
+  c: Ctx,
+  m: { id: string; name: string },
+  action: string,
+  summary: string
+) {
+  return record(prisma, c, {
+    action,
+    kind: "member",
+    subject: { id: m.id, label: m.name },
+    summary,
+  })
 }

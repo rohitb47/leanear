@@ -9,25 +9,33 @@ export const metadata = { title: "Sign in to Leanear" }
 export default async function SignIn(props: PageProps<"/signin">) {
   const q = await props.searchParams
   const tok = typeof q.invite === "string" ? q.invite : null
-  const next = tok ? `/join/${encodeURIComponent(tok)}` : "/"
+  const full = q.full === "1"
+  const next = tok && !full ? `/join/${encodeURIComponent(tok)}` : "/"
   if (await getSession()) redirect(next)
   const invite = tok ? await inviteInfo(tok) : null
   return (
     <div className="app">
-      <div className="view">
-        <div className="center">
+      <div className="frame">
+        <div className="solo">
           <div className="stack">
             <div className="bigmark">
               <Mark size={44} />
             </div>
-            <h2>{invite ? `Join ${invite.name}` : "Sign in to Leanear"}</h2>
-            <p>Projects and tasks for you and your agents.</p>
-            <div className="formcard">
+            <h1>{invite ? `Join ${invite.name}` : "Sign in to Leanear"}</h1>
+            <p className="lead">
+              One board for a small team and all its agents.
+            </p>
+            <div className="card">
               <SignInForm next={next} />
             </div>
             {tok && !invite && (
-              <p className="err">
+              <p className="err after">
                 That invite has expired. Ask for a new link.
+              </p>
+            )}
+            {full && (
+              <p className="err after">
+                That workspace is full: Cloud has room for 20 people.
               </p>
             )}
           </div>

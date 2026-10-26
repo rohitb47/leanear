@@ -1,47 +1,34 @@
 "use client"
 
-import { current, project as throwTo, set, spring } from "@leanear/ui/spring"
+import { project as throwTo, set, spring } from "@leanear/ui/spring"
+import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import {
-  STATUSES,
+  ALL_STATUSES,
   STATUS_NAME,
   TYPE_NAME,
+  type Activity,
+  type Project,
   type Status,
   type Task,
 } from "@/lib/sync/types"
 import { patch } from "@/lib/store/patch"
+import {
+  onFeed,
+  projectByKey,
+  refOf,
+  useData,
+  type Data,
+} from "@/lib/store/store"
 import { api } from "@/trpc/client"
 import { useApp } from "@/components/chrome/app"
+import { Av, StatusIcon } from "@/components/common/avatar"
 import { I } from "@/components/common/icons"
-import { useFlip, velocity } from "@/lib/ui/motion"
-import { projectByKey, refOf, useData, type Data } from "@/lib/store/store"
-import { Av, StatusDot } from "@/components/common/badges"
-import { count } from "@/lib/ui/format"
-
-type DragState = { id: string; col: Status; index: number; drop?: boolean }
-
-type G = {
-  id: string
-  el: HTMLElement
-  sx: number
-  sy: number
-  x: number
-  y: number
-  touch: boolean
-  started: boolean
-  hist: [number, number, number][]
-  timer?: number
-  raf?: number
-  base?: { left: number; top: number; width: number }
-  origin?: { col: Status; index: number }
-  vx?: number
-  vy?: number
-}
 
 const sortCol = (a: Task, b: Task) =>
   a.position - b.position || b.number - a.number
 
-/** Position for a task dropped at index in a column (the column excludes it). */
+/** Position for a task dropped at index in a column that doesn't hold it. */
 function between(list: Task[], index: number) {
   const before = list[index - 1]?.position
   const after = list[index]?.position
@@ -51,47 +38,38 @@ function between(list: Task[], index: number) {
   return (before + after) / 2
 }
 
+/** An agent in Doing is at work on it. */
 export const isLive = (d: Data, t: Task) =>
   t.status === "doing" &&
   !!t.assigneeId &&
   d.members[t.assigneeId]?.kind === "agent"
 
-export function Card({
-  t,
-  d,
-  selected,
-  slot,
-}: {
-  t: Task
-  d: Data
-  selected?: boolean
-  slot?: boolean
-}) {
-  return (
-    <button
-      className={`card${selected ? " selected" : ""}${isLive(d, t) ? " live" : ""}${slot ? " slot" : ""}`}
-      data-task={t.id}
-      data-flip={t.id}
-    >
-      <CardBody t={t} d={d} />
-    </button>
-  )
+type Slot = { status: Status; index: number }
+type Drag = {
+  id: string
+  ghost: HTMLElement
+  x0: number
+  y0: number
+  dx: number
+  dy: number
+  x: number
+  y: number
+  from: Slot
+  hist: { t: number; x: number; y: number }[]
+  landing: boolean
+  raf: number
 }
 
-function CardBody({ t, d }: { t: Task; d: Data }) {
-  return (
-    <>
-      <span className="r1">
-        <span className="cid">{refOf(d, t)}</span>
-        <span className="type">{TYPE_NAME[t.type]}</span>
-        <span className="grow" />
-        <Av m={t.assigneeId ? d.members[t.assigneeId] : null} />
-      </span>
-      <span className="t">{t.title}</span>
-    </>
-  )
+function velocity(h: { t: number; x: number; y: number }[]) {
+  if (h.length < 2) return { x: 0, y: 0 }
+  const a = h[0]
+  const b = h[h.length - 1]
+  const dt = (b.t - a.t) / 1000
+  if (dt <= 0 || performance.now() - b.t > 80) return { x: 0, y: 0 }
+  return { x: (b.x - a.x) / dt, y: (b.y - a.y) / dt }
 }
 
+/** A project that was just deleted or re-keyed draws nothing while it leaves. */
 export function Board({
   projectKey,
   openId,
@@ -99,411 +77,468 @@ export function Board({
   projectKey: string
   openId: string | null
 }) {
+  const p = projectByKey(useData(), projectKey)
+  return p ? <Columns p={p} openId={openId} /> : null
+}
+
+function Columns({ p, openId }: { p: Project; openId: string | null }) {
   const d = useData()
-  const { openTask, openNew, go } = useApp()
-  const p = projectByKey(d, projectKey)!
-  const all = Object.values(d.tasks).filter(
-    (t) => t.projectId === p.id && t.status !== "canceled"
-  )
+  const { openTask, openNew, openSetup } = useApp()
+  const mine = Object.values(d.tasks).filter((t) => t.projectId === p.id)
+  const all = mine.filter((t) => t.status !== "canceled")
   const cols = Object.fromEntries(
-    STATUSES.map((s) => [s, all.filter((t) => t.status === s).sort(sortCol)])
+    ALL_STATUSES.map((s) => [
+      s,
+      mine.filter((t) => t.status === s).sort(sortCol),
+    ])
   ) as Record<Status, Task[]>
 
-  const [drag, setDrag] = useState<DragState | null>(null)
-  const [base, setBase] = useState<{
-    left: number
-    top: number
-    width: number
-  } | null>(null)
-  const dragRef = useRef(drag)
-  const g = useRef<G | null>(null)
-  const suppress = useRef(false)
-  const root = useRef<HTMLDivElement>(null)
-  const ghost = useRef<HTMLDivElement>(null)
-  const ghostCard = useRef<HTMLDivElement>(null)
-
-  // Tasks that were here when the board opened don't rise in; new ones do.
-  const [seen] = useState(() => new Set(Object.keys(d.tasks)))
-  useFlip(root, (id) => {
-    if (seen.has(id)) return false
-    seen.add(id)
-    return true
+  const [slot, setSlot] = useState<(Slot & { id: string }) | null>(null)
+  const boardRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<Drag | null>(null)
+  const slotRef = useRef(slot)
+  const colsRef = useRef(cols)
+  useLayoutEffect(() => {
+    slotRef.current = slot
+    colsRef.current = cols
   })
 
-  const dragged = drag ? d.tasks[drag.id] : undefined
+  // Cards fade in only when added later; on load the board is simply there.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 0)
+    return () => clearTimeout(t)
+  }, [])
+
+  /** The column as drawn: the dragged card sits in its slot. */
   const listFor = (s: Status) => {
-    const list = cols[s].filter((t) => t.id !== drag?.id)
-    if (drag && dragged && drag.col === s) list.splice(drag.index, 0, dragged)
+    if (!slot) return cols[s]
+    const t = d.tasks[slot.id]
+    const list = cols[s].filter((x) => x.id !== slot.id)
+    if (t && slot.status === s) list.splice(slot.index, 0, t)
     return list
   }
 
-  /* ───────── Drag: lift, follow 1:1, throw, land ───────── */
-
-  function place(x: number, y: number): DragState | null {
-    const cur = dragRef.current
-    const el = root.current
-    if (!cur || !el) return null
-    const colEls = [...el.querySelectorAll<HTMLElement>(".col")]
-    let col = colEls.find((c) => {
-      const r = c.getBoundingClientRect()
-      return x >= r.left && x < r.right
-    })
-    if (!col)
-      col =
-        x < colEls[0].getBoundingClientRect().left
-          ? colEls[0]
-          : colEls[colEls.length - 1]
-    const cards = [...col.querySelectorAll<HTMLElement>(".card:not(.slot)")]
-    let index = cards.length
-    for (let i = 0; i < cards.length; i++) {
-      const r = cards[i].getBoundingClientRect()
-      const top = r.top - current(cards[i]).y
-      if (y < top + cards[i].offsetHeight / 2) {
+  /** Where would a point drop? Column by x, place by row centres. */
+  const slotAt = (px: number, py: number, id: string): Slot | null => {
+    const board = boardRef.current
+    if (!board) return null
+    const els = [...board.querySelectorAll<HTMLElement>("[data-col]")]
+    let col = els[0]
+    for (const c of els) if (px >= c.getBoundingClientRect().left) col = c
+    const status = col.dataset.col as Status
+    const rows = [...col.querySelectorAll<HTMLElement>("[data-id]")].filter(
+      (r) => r.dataset.id !== id
+    )
+    let index = rows.length
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i].getBoundingClientRect()
+      if (py < r.top + r.height / 2) {
         index = i
         break
       }
     }
-    const next = { id: cur.id, col: col.dataset.col as Status, index }
-    if (next.col !== cur.col || next.index !== cur.index) {
-      dragRef.current = next
-      setDrag(next)
-    }
-    return next
+    return { status, index }
   }
 
-  function begin() {
-    const s = g.current!
-    s.started = true
-    suppress.current = true
-    s.el.classList.remove("pressing")
-    const r = s.el.getBoundingClientRect()
-    s.base = { left: r.left, top: r.top, width: r.width }
-    const t = d.tasks[s.id]
-    const index = cols[t.status].findIndex((x) => x.id === s.id)
-    setBase(s.base)
-    s.origin = { col: t.status, index }
-    const next = { id: s.id, col: t.status, index }
-    dragRef.current = next
-    setDrag(next)
-    document.documentElement.classList.add("dragging")
-    try {
-      if (s.touch) navigator.vibrate?.(6)
-    } catch {}
-    const scroll = () => {
-      const s2 = g.current
-      if (!s2?.started) return
-      const sc = root.current?.parentElement
-      const ct = root.current?.closest(".content") as HTMLElement | null
-      let moved = false
-      if (sc) {
-        const r2 = sc.getBoundingClientRect()
-        const edge = 56
-        let v = 0
-        if (s2.x < r2.left + edge) v = -(r2.left + edge - s2.x) / edge
-        else if (s2.x > r2.right - edge) v = (s2.x - (r2.right - edge)) / edge
-        if (v) {
-          sc.scrollLeft += v * 14
-          moved = true
-        }
-      }
-      if (ct) {
-        const r2 = ct.getBoundingClientRect()
-        let v = 0
-        if (s2.y < r2.top + 32) v = -(r2.top + 32 - s2.y) / 32
-        else if (s2.y > r2.bottom - 40) v = (s2.y - (r2.bottom - 40)) / 40
-        if (v) {
-          ct.scrollTop += v * 10
-          moved = true
-        }
-      }
-      if (moved) place(s2.x, s2.y)
-      s2.raf = requestAnimationFrame(scroll)
-    }
-    s.raf = requestAnimationFrame(scroll)
+  const moveSlot = (id: string, s: Slot) => {
+    const cur = slotRef.current
+    if (cur && cur.status === s.status && cur.index === s.index) return
+    const next = { id, ...s }
+    slotRef.current = next
+    setSlot(next)
   }
 
-  function end(cancel: boolean) {
-    const s = g.current
-    if (!s) return
-    if (s.raf) cancelAnimationFrame(s.raf)
-    const { vx, vy } = velocity(s.hist)
-    s.vx = cancel ? 0 : vx
-    s.vy = cancel ? 0 : vy
-    let final: DragState | null
-    if (cancel) {
-      final = { id: s.id, ...s.origin! }
-    } else {
-      // A throw lands where it was heading, not where the finger let go.
-      const sc = root.current!.parentElement!.getBoundingClientRect()
-      const px = Math.max(
-        sc.left + 4,
-        Math.min(sc.right - 4, s.x + throwTo(vx))
-      )
-      final = place(px, s.y + throwTo(vy) * 0.5) ?? dragRef.current
-    }
-    s.started = false
-    const next = { ...final!, drop: true }
-    dragRef.current = next
-    setDrag(next)
-  }
-
-  function commit() {
-    const s = g.current
-    const fin = dragRef.current
-    g.current = null
-    dragRef.current = null
-    document.documentElement.classList.remove("dragging")
-    if (!s || !fin) {
-      setDrag(null)
-      return
-    }
-    const t = d.tasks[fin.id]
-    const moved =
-      !s.origin || fin.col !== s.origin.col || fin.index !== s.origin.index
-    if (t && moved) {
-      const list = cols[fin.col].filter((x) => x.id !== fin.id)
-      const position = between(list, fin.index)
-      void patch(t.id, { status: fin.col, position }, () =>
-        api.tasks.move.mutate({ id: t.id, status: fin.col, position })
-      )
-      try {
-        if (s.touch) navigator.vibrate?.(8)
-      } catch {}
-    }
-    setDrag(null)
-    setTimeout(() => (suppress.current = false), 0)
-  }
-
-  // Ghost follows on the first frame of a drag, then lands on the slot.
+  // A drop: once the slot is drawn, send the ghost to it, then save.
   useLayoutEffect(() => {
-    const s = g.current
-    const gh = ghost.current
-    const inner = ghostCard.current
-    if (!drag || !s || !gh || !inner || !s.base) return
-    if (!drag.drop) {
-      if (!gh.dataset.live) {
-        gh.dataset.live = "1"
-        set(gh, { x: s.x - s.sx, y: s.y - s.sy })
-        spring(inner, { s: 1.035 }, { r: 0.22, keep: true })
-      }
-      return
-    }
-    const slot = root.current?.querySelector<HTMLElement>(
-      `.card.slot[data-flip="${drag.id}"]`
+    const g = drag.current
+    if (!g?.landing || !slot) return
+    const el = boardRef.current?.querySelector<HTMLElement>(
+      `[data-id="${g.id}"]`
     )
-    if (!slot) return commit()
-    const r = slot.getBoundingClientRect()
-    const c = current(slot)
-    spring(inner, {}, { r: 0.3 })
+    const finish = () => {
+      g.ghost.remove()
+      drag.current = null
+      const fin = slotRef.current
+      if (fin && (fin.status !== g.from.status || fin.index !== g.from.index)) {
+        const list = colsRef.current[fin.status].filter((x) => x.id !== g.id)
+        const position = between(list, fin.index)
+        void patch(g.id, { status: fin.status, position }, () =>
+          api.tasks.move.mutate({ id: g.id, status: fin.status, position })
+        )
+      }
+      slotRef.current = null
+      setSlot(null)
+    }
+    if (!el) return finish()
+    // Where the slot settles, without the glide Motion may be mid-way through.
+    const r = el.getBoundingClientRect()
+    const m = new DOMMatrixReadOnly(getComputedStyle(el).transform)
+    const v = velocity(g.hist)
     spring(
-      gh,
-      { x: r.left - c.x - s.base.left, y: r.top - c.y - s.base.top },
-      {
-        z: 0.8,
-        r: 0.4,
-        v: { x: s.vx ?? 0, y: s.vy ?? 0 },
-        keep: true,
-        onRest: commit,
-      }
+      g.ghost,
+      { x: r.left - m.m41 - g.x0, y: r.top - m.m42 - g.y0, s: 1 },
+      { z: 0.85, r: 0.3, v: { x: v.x, y: v.y }, keep: true, onRest: finish }
     )
-    // commit and place read the latest state through refs
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [drag])
+  }, [slot])
 
-  type H = {
-    move: (e: PointerEvent) => void
-    up: () => void
-    cancel: () => void
-  }
-  const handlers = useRef<H | null>(null)
-  useLayoutEffect(() => {
-    handlers.current = {
-      move: (e) => {
-        const s = g.current
-        if (!s || dragRef.current?.drop) return
-        s.x = e.clientX
-        s.y = e.clientY
-        s.hist.push([e.clientX, e.clientY, performance.now()])
-        if (s.hist.length > 10) s.hist.shift()
-        if (!s.started) {
-          const dist = Math.hypot(e.clientX - s.sx, e.clientY - s.sy)
-          if (s.touch) {
-            if (dist > 10) {
-              clearTimeout(s.timer)
-              s.el.classList.remove("pressing")
-              g.current = null
-            }
-            return
-          }
-          if (dist < 5) return
-          begin()
-          return
-        }
-        if (ghost.current) set(ghost.current, { x: s.x - s.sx, y: s.y - s.sy })
-        place(s.x, s.y)
-      },
-      up: () => {
-        const s = g.current
-        if (!s || dragRef.current?.drop) return
-        clearTimeout(s.timer)
-        s.el.classList.remove("pressing")
-        if (s.started) end(false)
-        else g.current = null
-      },
-      cancel: () => {
-        const s = g.current
-        if (!s || dragRef.current?.drop) return
-        clearTimeout(s.timer)
-        s.el.classList.remove("pressing")
-        if (s.started) end(true)
-        else g.current = null
-      },
-    }
-  })
-
+  // Escape puts a card back where it came from.
   useEffect(() => {
-    const move = (e: PointerEvent) => handlers.current?.move(e)
-    const up = () => handlers.current?.up()
-    const cancel = () => handlers.current?.cancel()
     const key = (e: KeyboardEvent) => {
-      if (e.key === "Escape" && g.current?.started) {
-        e.preventDefault()
-        handlers.current?.cancel()
-      }
+      const g = drag.current
+      if (e.key !== "Escape" || !g || g.landing) return
+      e.preventDefault()
+      e.stopPropagation()
+      window.dispatchEvent(new Event("lean-cancel-drag"))
     }
-    const touch = (e: TouchEvent) => {
-      if (g.current?.started) e.preventDefault()
-    }
-    window.addEventListener("pointermove", move)
-    window.addEventListener("pointerup", up)
-    window.addEventListener("pointercancel", cancel)
-    window.addEventListener("keydown", key)
-    window.addEventListener("touchmove", touch, { passive: false })
-    return () => {
-      window.removeEventListener("pointermove", move)
-      window.removeEventListener("pointerup", up)
-      window.removeEventListener("pointercancel", cancel)
-      window.removeEventListener("keydown", key)
-      window.removeEventListener("touchmove", touch)
-      document.documentElement.classList.remove("dragging")
-    }
+    window.addEventListener("keydown", key, true)
+    return () => window.removeEventListener("keydown", key, true)
   }, [])
 
-  const onPointerDown = (e: React.PointerEvent) => {
-    if (e.button !== 0 || g.current) return
-    const c = (e.target as HTMLElement).closest<HTMLElement>(".card[data-task]")
-    if (!c) return
+  const onPointerDown = (e: React.PointerEvent<HTMLElement>, id: string) => {
+    if (e.button !== 0 || drag.current) return
+    const row = e.currentTarget
+    const sx = e.clientX
+    const sy = e.clientY
     const touch = e.pointerType !== "mouse"
-    g.current = {
-      id: c.dataset.task!,
-      el: c,
-      sx: e.clientX,
-      sy: e.clientY,
-      x: e.clientX,
-      y: e.clientY,
-      touch,
-      started: false,
-      hist: [[e.clientX, e.clientY, performance.now()]],
+    let started = false
+    let timer: ReturnType<typeof setTimeout> | undefined
+
+    const start = (x: number, y: number) => {
+      started = true
+      row.classList.remove("press")
+      const r = row.getBoundingClientRect()
+      const ghost = row.cloneNode(true) as HTMLElement
+      ghost.classList.add("lifted")
+      ghost.classList.remove("on")
+      ghost.removeAttribute("data-id")
+      Object.assign(ghost.style, {
+        left: `${r.left}px`,
+        top: `${r.top}px`,
+        width: `${r.width}px`,
+        height: `${r.height}px`,
+        transform: "",
+      })
+      document.body.appendChild(ghost)
+      const t = d.tasks[id]
+      const from = {
+        status: t.status,
+        index: colsRef.current[t.status].findIndex((x) => x.id === id),
+      }
+      drag.current = {
+        id,
+        ghost,
+        x0: r.left,
+        y0: r.top,
+        dx: x - r.left,
+        dy: y - r.top,
+        x,
+        y,
+        from,
+        hist: [{ t: performance.now(), x, y }],
+        landing: false,
+        raf: requestAnimationFrame(edge),
+      }
+      spring(ghost, { s: 1.035 }, { z: 0.7, r: 0.2, keep: true })
+      moveSlot(id, from)
+      document.documentElement.classList.add("dragging")
+      try {
+        if (touch) navigator.vibrate?.(6)
+      } catch {}
     }
+
+    // Near a column's top or bottom, or the board's sides, it scrolls.
+    const edge = () => {
+      const g = drag.current
+      if (!g || g.landing) return
+      const board = boardRef.current
+      let moved = false
+      if (board) {
+        const b = board.getBoundingClientRect()
+        const v = g.x < b.left + 48 ? -1 : g.x > b.right - 48 ? 1 : 0
+        if (v && board.scrollWidth > board.clientWidth) {
+          board.scrollLeft += v * 12
+          moved = true
+        }
+        for (const rows of board.querySelectorAll<HTMLElement>(".rows")) {
+          const r = rows.getBoundingClientRect()
+          if (g.x < r.left || g.x > r.right) continue
+          const dy =
+            g.y < r.top + 40
+              ? -(r.top + 40 - g.y) / 40
+              : g.y > r.bottom - 56
+                ? (g.y - (r.bottom - 56)) / 56
+                : 0
+          if (dy) {
+            rows.scrollTop += Math.max(-1, Math.min(1, dy)) * 10
+            moved = true
+          }
+        }
+      }
+      if (moved) {
+        const s = slotAt(g.x, g.y, g.id)
+        if (s) moveSlot(g.id, s)
+      }
+      g.raf = requestAnimationFrame(edge)
+    }
+
+    const move = (ev: PointerEvent) => {
+      if (!started) {
+        const far = Math.hypot(ev.clientX - sx, ev.clientY - sy)
+        if (touch) {
+          if (far > 8) cleanup()
+          return
+        }
+        if (far < 5) return
+        start(ev.clientX, ev.clientY)
+      }
+      const g = drag.current
+      if (!g || g.landing) return
+      const now = performance.now()
+      g.x = ev.clientX
+      g.y = ev.clientY
+      g.hist.push({ t: now, x: ev.clientX, y: ev.clientY })
+      while (g.hist.length > 2 && now - g.hist[0].t > 100) g.hist.shift()
+      set(g.ghost, {
+        x: ev.clientX - g.dx - g.x0,
+        y: ev.clientY - g.dy - g.y0,
+        s: 1.035,
+      })
+      const s = slotAt(ev.clientX, ev.clientY, id)
+      if (s) moveSlot(id, s)
+    }
+
+    const land = (s: Slot | null) => {
+      const g = drag.current!
+      cancelAnimationFrame(g.raf)
+      g.landing = true
+      document.documentElement.classList.remove("dragging")
+      // Force the layout effect even when the slot is unchanged.
+      const next = { id, ...(s ?? g.from) }
+      slotRef.current = next
+      setSlot(next)
+    }
+
+    const up = (ev: PointerEvent) => {
+      const g = drag.current
+      cleanup()
+      if (!started) {
+        if (ev.type === "pointerup") {
+          const t = d.tasks[id]
+          if (t) openTask(refOf(d, t))
+        }
+        return
+      }
+      if (!g) return
+      if (ev.type === "pointercancel") return land(g.from)
+      // Project the throw: a flick carries on to where it was heading.
+      const v = velocity(g.hist)
+      const br = boardRef.current!.getBoundingClientRect()
+      const px = Math.min(
+        Math.max(ev.clientX + throwTo(v.x), br.left + 1),
+        br.right - 1
+      )
+      land(slotAt(px, ev.clientY + throwTo(v.y) * 0.5, id))
+    }
+
+    const cancel = () => {
+      const g = drag.current
+      cleanup()
+      if (g && started) land(g.from)
+    }
+
+    const block = (ev: TouchEvent) => {
+      if (started) ev.preventDefault()
+    }
+
+    const cleanup = () => {
+      clearTimeout(timer)
+      row.classList.remove("press")
+      window.removeEventListener("pointermove", move)
+      window.removeEventListener("pointerup", up)
+      window.removeEventListener("pointercancel", up)
+      window.removeEventListener("lean-cancel-drag", cancel)
+      document.removeEventListener("touchmove", block)
+    }
+
+    window.addEventListener("pointermove", move)
+    window.addEventListener("pointerup", up)
+    window.addEventListener("pointercancel", up)
+    window.addEventListener("lean-cancel-drag", cancel)
     if (touch) {
-      c.classList.add("pressing")
-      g.current.timer = window.setTimeout(() => {
-        if (g.current && !g.current.started) begin()
-      }, 280)
+      document.addEventListener("touchmove", block, { passive: false })
+      row.classList.add("press")
+      timer = setTimeout(() => start(sx, sy), 280)
     }
   }
-
-  const onClick = (e: React.MouseEvent) => {
-    if (suppress.current) {
-      suppress.current = false
-      return
-    }
-    const c = (e.target as HTMLElement).closest<HTMLElement>(".card[data-task]")
-    if (c) {
-      const t = d.tasks[c.dataset.task!]
-      if (t) openTask(refOf(d, t))
-    }
-  }
-
-  const projects = Object.values(d.projects)
-  const total = all.length
 
   return (
     <>
-      <div className="titlerow">
-        <h1>{p.name}</h1>
-        <span className="mono">
-          {p.key} · {total} {total === 1 ? "task" : "tasks"}
-        </span>
-        <span className="grow" />
-        {projects.length > 1 && (
-          <div className="keys">
-            {projects.map((x) => (
-              <button
-                key={x.id}
-                className={`key${x.key === p.key ? " on" : ""}`}
-                onClick={() => go({ view: "board", key: x.key })}
-              >
-                {x.key}
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="boardscroll">
-        <div
-          className="board"
-          ref={root}
-          onPointerDown={onPointerDown}
-          onClick={onClick}
-          onContextMenu={(e) => g.current?.touch && e.preventDefault()}
-        >
-          {STATUSES.map((s) => {
-            const list = listFor(s)
-            return (
-              <div className="col" data-col={s} key={s}>
-                <div className="colhead">
-                  <StatusDot s={s} />
-                  <span>{STATUS_NAME[s]}</span>
-                  <span className="count">{count(list.length)}</span>
+      <div className="board" ref={boardRef}>
+        {ALL_STATUSES.map((s) => {
+          const rows = listFor(s)
+          return (
+            <div className="col" key={s} data-col={s}>
+              <div className="colhead">
+                <StatusIcon s={s} />
+                {STATUS_NAME[s]}
+                <span className="n">{rows.length}</span>
+                {s !== "canceled" && (
                   <button
-                    className="add"
-                    onClick={(e) => openNew(s, e.currentTarget)}
+                    className="icon"
+                    onClick={() => openNew(s)}
                     aria-label={`New task in ${STATUS_NAME[s]}`}
                   >
                     {I.plus}
                   </button>
-                </div>
-                <div className="cards">
-                  {list.map((t) => (
-                    <Card
-                      key={t.id}
-                      t={t}
-                      d={d}
-                      selected={t.id === openId}
-                      slot={drag?.id === t.id}
-                    />
-                  ))}
-                </div>
+                )}
               </div>
-            )
-          })}
-        </div>
+              <motion.div className="rows" layoutScroll>
+                {rows.map((t) => {
+                  const who = t.assigneeId ? d.members[t.assigneeId] : null
+                  return (
+                    <motion.div
+                      key={t.id}
+                      layout="position"
+                      layoutId={t.id}
+                      initial={mounted ? { opacity: 0, scale: 0.96 } : false}
+                      animate={{ opacity: 1, scale: 1 }}
+                      data-id={t.id}
+                      role="button"
+                      tabIndex={0}
+                      className={`row${t.status === "done" || t.status === "canceled" ? " done" : ""}${slot?.id === t.id ? " slot" : ""}${t.id === openId ? " on" : ""}`}
+                      onPointerDown={(e) => onPointerDown(e, t.id)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault()
+                          openTask(refOf(d, t))
+                        }
+                      }}
+                    >
+                      <div className="r1">
+                        <span className="cid">{refOf(d, t)}</span>
+                        <span className="type">{TYPE_NAME[t.type]}</span>
+                        <Av m={who} live={isLive(d, t)} />
+                      </div>
+                      <div className="t">{t.title}</div>
+                    </motion.div>
+                  )
+                })}
+              </motion.div>
+            </div>
+          )
+        })}
       </div>
-      {drag && dragged && base && (
-        <div
-          ref={ghost}
-          className="ghostwrap"
-          style={{ left: base.left, top: base.top, width: base.width }}
-        >
-          <div
-            ref={ghostCard}
-            className={`card ghost${isLive(d, dragged) ? " live" : ""}`}
-          >
-            <CardBody t={dragged} d={d} />
+      {!all.length && (
+        <div className="empty">
+          <div>
+            <h2>Nothing on {p.name} yet</h2>
+            <p>
+              Add the first task, or let your agent read the repo and fill the
+              board for you.
+            </p>
+            <div className="ctas">
+              <button className="btn accent" onClick={() => openNew("todo")}>
+                New task
+              </button>
+              <button className="btn" onClick={openSetup}>
+                Bring a codebase
+              </button>
+            </div>
           </div>
         </div>
       )}
+      <Feed projectId={p.id} />
     </>
   )
+}
+
+/** What someone else just did on this board, for a few seconds. */
+function Feed({ projectId }: { projectId: string }) {
+  const d = useData()
+  const { openTask } = useApp()
+  const [item, setItem] = useState<Activity | null>(null)
+  const ref = useRef(d)
+  useLayoutEffect(() => {
+    ref.current = d
+  })
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout>
+    const off = onFeed((list) => {
+      const mine = list.filter(
+        (a) => ref.current.tasks[a.taskId]?.projectId === projectId
+      )
+      const last = mine[mine.length - 1]
+      if (!last) return
+      setItem(last)
+      clearTimeout(t)
+      t = setTimeout(() => setItem(null), 4500)
+    })
+    return () => {
+      off()
+      clearTimeout(t)
+    }
+  }, [projectId])
+
+  const task = item ? d.tasks[item.taskId] : undefined
+  const who = item ? d.members[item.actorId] : undefined
+  const line =
+    item && task && who ? `${who.name} ${said(item, refOf(d, task), d)}` : null
+  return (
+    <AnimatePresence>
+      {line && task && (
+        <motion.button
+          className="feed"
+          layout
+          style={{ borderRadius: 999 }}
+          initial={{ opacity: 0, y: 16, scale: 0.96, filter: "blur(4px)" }}
+          animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+          exit={{ opacity: 0, y: 16, scale: 0.96, filter: "blur(4px)" }}
+          aria-live="polite"
+          onClick={() => openTask(refOf(d, task))}
+        >
+          <motion.span layout="position" style={{ display: "flex" }}>
+            <Av m={who} />
+          </motion.span>
+          <AnimatePresence mode="popLayout" initial={false}>
+            <motion.span
+              key={line}
+              layout="position"
+              initial={{ opacity: 0, scale: 0.9, filter: "blur(4px)" }}
+              animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
+              exit={{ opacity: 0, scale: 1.06, filter: "blur(3px)" }}
+            >
+              {line}
+            </motion.span>
+          </AnimatePresence>
+        </motion.button>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function said(a: Activity, ref: string, d: Data) {
+  const data = (a.data ?? {}) as Record<string, string | null>
+  switch (a.kind) {
+    case "created":
+      return `added ${ref}`
+    case "moved":
+      return a.data?.to === "doing"
+        ? `picked up ${ref}`
+        : `moved ${ref} to ${STATUS_NAME[data.to as Status] ?? data.to}`
+    case "assigned":
+      return data.to === a.actorId
+        ? `took ${ref}`
+        : data.to
+          ? `gave ${ref} to ${d.members[data.to]?.name ?? "someone"}`
+          : `unassigned ${ref}`
+    case "commented":
+      return `commented on ${ref}`
+    case "notes":
+      return `edited the notes on ${ref}`
+    case "renamed":
+      return `renamed ${ref}`
+    case "retyped":
+      return `made ${ref} a ${TYPE_NAME[data.to as Task["type"]] ?? data.to}`
+  }
 }

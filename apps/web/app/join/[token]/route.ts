@@ -12,6 +12,7 @@ export async function GET(_req: Request, ctx: RouteContext<"/join/[token]">) {
   if (!user) return NextResponse.redirect(back)
   const ws = await acceptInvite(user, token)
   if (!ws) return NextResponse.redirect(`${back}&expired=1`)
+  if (ws === "full") return NextResponse.redirect(`${back}&full=1`)
   await rememberWorkspace(ws)
   return NextResponse.redirect(`${base}/`)
 }

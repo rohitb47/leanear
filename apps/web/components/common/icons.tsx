@@ -133,4 +133,33 @@ export const I = {
       <path d="M8 1.3a6.7 6.7 0 0 0-2.1 13.06c.33.06.46-.15.46-.32v-1.2c-1.87.4-2.26-.8-2.26-.8-.3-.78-.74-.99-.74-.99-.6-.42.05-.41.05-.41.67.05 1.03.7 1.03.7.6 1.02 1.57.72 1.95.55.06-.43.23-.72.42-.89-1.49-.17-3.06-.75-3.06-3.32 0-.73.26-1.33.69-1.8-.07-.17-.3-.85.07-1.77 0 0 .56-.18 1.84.69a6.3 6.3 0 0 1 3.35 0c1.28-.87 1.84-.69 1.84-.69.37.92.14 1.6.07 1.77.43.47.69 1.07.69 1.8 0 2.58-1.57 3.15-3.07 3.31.24.21.46.62.46 1.25v1.85c0 .18.12.39.46.32A6.7 6.7 0 0 0 8 1.3z" />
     </svg>
   ),
+  chev: (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 12 12"
+      fill="none"
+      aria-hidden="true"
+    >
+      <path
+        d="M3 4.75 6 7.75l3-3"
+        stroke="currentColor"
+        strokeWidth="1.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
+  tick: (
+    <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+      <path
+        d="M3.5 8.5 6.5 11.5 12.5 4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.8"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
+  ),
 }

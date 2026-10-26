@@ -1,18 +1,17 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
-import { useApp } from "@/components/chrome/app"
-import { I } from "@/components/common/icons"
-import { usePresence } from "@/lib/ui/motion"
-import { refOf, useData } from "@/lib/store/store"
-import { StatusDot } from "@/components/common/badges"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import type { Status } from "@/lib/sync/types"
+import { refOf, useData } from "@/lib/store/store"
+import { useApp } from "@/components/chrome/app"
+import { Dialog } from "@/components/chrome/dialog"
+import { StatusIcon } from "@/components/common/avatar"
+import { I } from "@/components/common/icons"
 
 type Item = {
   label: string
   hint?: string
-  ref?: string
-  status?: Status
+  lead?: ReactNode
   run: () => void
 }
 
@@ -24,29 +23,16 @@ export function Palette({
   open: boolean
   onClose: () => void
 }) {
-  const { mounted, ref, closing } = usePresence<HTMLDivElement>(
-    open,
-    { s: 0.96, o: 0, y: -6, b: 4 },
-    { s: 0.97, o: 0, y: -6, b: 3 },
-    0.28,
-    0.22
-  )
-  if (!mounted) return null
   return (
-    <div
-      className={`overlay${closing ? " closing" : ""}`}
-      onPointerDown={(e) => e.target === e.currentTarget && onClose()}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      label="Command menu"
+      className="palette"
+      instant
     >
-      <div
-        className="dialog palette"
-        ref={ref}
-        role="dialog"
-        aria-label="Command menu"
-        style={{ transformOrigin: "50% 0" }}
-      >
-        <Body onClose={onClose} />
-      </div>
-    </div>
+      <Body onClose={onClose} />
+    </Dialog>
   )
 }
 
@@ -56,70 +42,95 @@ function Body({ onClose }: { onClose: () => void }) {
   const [q, setQ] = useState("")
   const [sel, setSel] = useState(0)
   const list = useRef<HTMLDivElement>(null)
-
   const ql = q.toLowerCase().trim()
-  const projects = Object.values(d.projects)
+  const key = app.project
   const run = (f: () => void) => () => {
     onClose()
     f()
   }
+  const has = (s: string) => !ql || s.toLowerCase().includes(ql)
+
+  // The project in view, if any: its tabs come first, then the workspace's.
+  const here = "key" in app.route ? app.route.key : undefined
+  const pname = here
+    ? Object.values(d.projects).find((p) => p.key === here)?.name
+    : null
   const acts: Item[] = [
     { label: "New task", hint: "C", run: run(() => app.openNew()) },
-    ...(app.project
-      ? [
-          {
-            label: "Go to Board",
-            hint: "B",
-            run: run(() => app.go({ view: "board", key: app.project! })),
-          },
-        ]
-      : []),
     {
-      label: "Go to My Tasks",
-      hint: "M",
-      run: run(() => app.go({ view: "mine" })),
+      label: "Go to Home",
+      hint: "G H",
+      run: run(() => app.go({ view: "home" })),
     },
-    ...(app.project
+    ...(key
       ? [
           {
-            label: "Go to Brief",
-            hint: "R",
-            run: run(() => app.go({ view: "brief", key: app.project! })),
+            label: `Go to the ${Object.values(d.projects).find((p) => p.key === key)?.name} board`,
+            hint: "G B",
+            run: run(() => app.go({ view: "board", key })),
+          },
+        ]
+      : []),
+    ...(here
+      ? [
+          {
+            label: `${pname} activity`,
+            run: run(() => app.go({ view: "activity", key: here })),
+          },
+          {
+            label: `${pname} settings`,
+            run: run(() => app.go({ view: "settings", key: here })),
           },
         ]
       : []),
     {
-      label: "Go to Settings",
-      hint: "S",
+      label: "All activity",
+      hint: here ? undefined : "G A",
+      run: run(() => app.go({ view: "activity" })),
+    },
+    {
+      label: "Open the trash",
+      run: run(() => app.go({ view: "activity", key: here, trash: true })),
+    },
+    {
+      label: "Workspace settings",
+      hint: here ? undefined : "G S",
       run: run(() => app.go({ view: "settings" })),
     },
-    ...projects.map((p) => ({
-      label: `Switch to ${p.name}`,
-      hint: p.key,
-      run: run(() => app.go({ view: "board", key: p.key })),
-    })),
-    { label: "Switch to dark", run: run(() => app.setTheme("dark")) },
-    { label: "Switch to light", run: run(() => app.setTheme("light")) },
-    { label: "Match the system theme", run: run(() => app.setTheme("system")) },
-  ].filter((x) => !ql || x.label.toLowerCase().includes(ql))
+    {
+      label: "Add an agent",
+      run: run(app.addAgent),
+    },
+    { label: "New project", run: run(app.newProject) },
+    { label: "Bring a codebase", run: run(app.openSetup) },
+    ...Object.values(d.projects)
+      .filter((p) => p.key !== here)
+      .map((p) => ({
+        label: `Switch to ${p.name}`,
+        hint: p.key,
+        run: run(() => app.go({ view: "board", key: p.key })),
+      })),
+  ].filter((x) => has(x.label))
 
-  const tasks: Item[] = Object.values(d.tasks)
-    .map((t) => ({ t, ref: refOf(d, t) }))
-    .filter(
-      ({ t, ref }) =>
-        !ql ||
-        ref.toLowerCase().includes(ql) ||
-        t.title.toLowerCase().includes(ql) ||
-        t.notes.toLowerCase().includes(ql)
-    )
-    .sort((a, b) => b.t.updatedAt.localeCompare(a.t.updatedAt))
-    .slice(0, 8)
-    .map(({ t, ref }) => ({
-      label: t.title,
-      ref,
-      status: t.status,
-      run: run(() => app.openTask(ref)),
-    }))
+  const tasks: Item[] = ql
+    ? Object.values(d.tasks)
+        .map((t) => ({ t, ref: refOf(d, t) }))
+        .filter(({ t, ref }) => has(ref) || has(t.title) || has(t.notes))
+        .sort((a, b) => b.t.updatedAt.localeCompare(a.t.updatedAt))
+        .slice(0, 8)
+        .map(({ t, ref }) => ({
+          label: t.title,
+          lead: (
+            <>
+              <StatusIcon s={t.status as Status} />
+              <span className="cid" style={{ width: 64, flex: "none" }}>
+                {ref}
+              </span>
+            </>
+          ),
+          run: run(() => app.openTask(ref)),
+        }))
+    : []
 
   const all = [...acts, ...tasks]
   const cur = Math.min(sel, Math.max(0, all.length - 1))
@@ -138,16 +149,9 @@ function Body({ onClose }: { onClose: () => void }) {
         onMouseMove={() => setSel(n)}
         onClick={x.run}
       >
-        {x.ref && (
-          <>
-            <StatusDot s={x.status!} />
-            <span className="cid" style={{ width: 60, flex: "none" }}>
-              {x.ref}
-            </span>
-          </>
-        )}
+        {x.lead}
         <span>{x.label}</span>
-        {x.hint && <span className="hint kbd">{x.hint}</span>}
+        {x.hint && <span className="kbd">{x.hint}</span>}
       </button>
     )
   }
@@ -159,7 +163,7 @@ function Body({ onClose }: { onClose: () => void }) {
         <input
           autoFocus
           value={q}
-          placeholder="Search tasks or type a command"
+          placeholder="Search tasks, or type a command"
           autoComplete="off"
           onChange={(e) => {
             setQ(e.target.value)
@@ -178,11 +182,11 @@ function Body({ onClose }: { onClose: () => void }) {
         />
       </div>
       <div className="res" ref={list}>
-        {acts.length > 0 && <div className="sec">Actions</div>}
+        {acts.length > 0 && <div className="grp">Actions</div>}
         {acts.map(btn)}
-        {tasks.length > 0 && <div className="sec">Tasks</div>}
+        {tasks.length > 0 && <div className="grp">Tasks</div>}
         {tasks.map(btn)}
-        {!all.length && <div className="sec">Nothing matches</div>}
+        {!all.length && <div className="grp">Nothing matches</div>}
       </div>
     </>
   )

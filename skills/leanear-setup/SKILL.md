@@ -1,54 +1,34 @@
 ---
 name: leanear-setup
-description: Set up Leanear for an existing codebase. Use when the user asks to set up, bring, move or start Leanear for this repo, or to turn the codebase's TODOs and issues into Leanear tasks. Reads the code, writes the project's context files and creates its first tasks over the Leanear MCP server. Never changes code.
+description: Set up Leanear for an existing codebase. Use when the user asks to set up, bring, move or start Leanear for this repo, or to turn the codebase's TODOs and issues into Leanear tasks. Reads the code and creates the project's first tasks over the Leanear MCP server. Never changes code.
 ---
 
 # Set up Leanear for this codebase
 
 You are setting up a Leanear project for the repository you're in. Leanear is
-a lean project tool: projects, tasks, statuses, activity, agents, and each
-project's context (its `.md` files). You talk to it through the `leanear` MCP
-server.
+a lean project tool: projects, tasks, statuses, activity and agents. You talk
+to it through the `leanear` MCP server.
 
 ## Before you start
 
-1. Check the `leanear` MCP server is connected. If it isn't, stop and tell the
-   user to add it (https://leanear.app/docs/mcp), then try again.
+1. Check the `leanear` MCP server is connected: its tools (`list_projects`
+   and the rest) are available to you. If they aren't, stop and tell the user,
+   in two lines: in Leanear, press ⌘K and pick **Bring a codebase**, and run
+   the one line it makes in this folder; then start a new
+   Claude Code session here and run `/leanear-setup` again. A server added
+   mid-session doesn't load until the next one.
 2. Call `list_projects`. If the user named a project, use it. If there's
    exactly one, use it. Otherwise ask which one, and stop until they answer.
    Projects are made in the app; you don't create them.
 
 ## 1. Read the codebase
 
-Read enough to describe it truthfully: the README, package or build files, the
-folder layout, existing `CLAUDE.md`, `AGENTS.md` or other agent files, docs,
-and a sample of the main source. Note the stack, how to run and check it, the
-conventions the code already follows, and anything the existing docs say
-agents must or must not do.
+Read enough to know what's planned and what's broken: the README, package or
+build files, the folder layout, docs, and a sample of the main source. Read the
+repo's own `CLAUDE.md` and `AGENTS.md` if it has them, and follow them while
+you work here. Leave them where they are.
 
-## 2. Write the context
-
-Call `list_files` first. For each file below:
-
-- If it doesn't exist in Leanear, write it with `put_file`.
-- If it exists, read it with `get_file`, and only add what's missing. Never
-  rewrite or delete what's there without asking.
-- If the repo already has the file, start from its content.
-
-Files:
-
-- `CLAUDE.md`: what the project is in two lines, the stack, how to run and
-  check it, and the rules an agent must follow here.
-- `AGENTS.md`: how agents work on this project in Leanear: take tasks with
-  `next_task`, comment what was done, move tasks to Done, ask in a comment when
-  unsure.
-- `DESIGN.md`: only if the code has a clear look (tokens, a design system, a
-  brand file). Describe what's there; don't invent a style.
-
-Keep every file short: rules, not inventories. Only write what's true in the
-code today.
-
-## 3. Create the first tasks
+## 2. Create the first tasks
 
 1. Call `list_tasks` for the project, so you never create a duplicate.
 2. Collect candidates from:
@@ -66,11 +46,10 @@ code today.
 
 - Don't change any code, commit or push. This is setup only.
 - Don't create projects, keys or people.
-- Never put secrets, keys or `.env` values in a context file or a task.
+- Never put secrets, keys or `.env` values in a task.
 - If something is unclear, ask in one message rather than guessing.
 
 ## When you're done
 
-Tell the user, in a few lines: which project, which context files you wrote or
-added to, how many tasks you created and where they came from, and the five in
-Todo.
+Tell the user, in a few lines: which project, how many tasks you created and
+where they came from, and the five in Todo.

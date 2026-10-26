@@ -1,7 +1,7 @@
 "use client"
 
+import { GitHubIcon } from "@leanear/ui/mark"
 import { useState } from "react"
-import { I } from "@/components/common/icons"
 import { authClient } from "@/lib/auth/client"
 
 /** GitHub, the one way in. */
@@ -11,7 +11,7 @@ export function SignInForm({ next }: { next: string }) {
   return (
     <>
       <button
-        className="btn accent wide"
+        className="btn accent wide github"
         disabled={busy}
         onClick={async () => {
           setBusy(true)
@@ -26,7 +26,7 @@ export function SignInForm({ next }: { next: string }) {
           }
         }}
       >
-        {I.github} Continue with GitHub
+        <GitHubIcon size={17} /> Continue with GitHub
       </button>
       {err && <p className="err">{err}</p>}
     </>

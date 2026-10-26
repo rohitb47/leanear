@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import { agentCtx } from "@/lib/auth/agent"
+import { mustBePaid } from "@/lib/billing/billing"
 import { INSTRUCTIONS, TOOLS, call } from "@/lib/mcp/tools"
 import type { Ctx } from "@/lib/workspace/context"
 import { LeanError } from "@/lib/utils"
@@ -48,7 +49,9 @@ async function handle(m: Msg, getCtx: () => Promise<C>): Promise<Json | null> {
       const name = String(m.params?.name ?? "")
       const args = (m.params?.arguments ?? {}) as Json
       try {
-        const text = await call(await getCtx(), name, args)
+        const c = await getCtx()
+        await mustBePaid(c.ws)
+        const text = await call(c, name, args)
         return reply({ content: [{ type: "text", text }] })
       } catch (e) {
         if (e instanceof LeanError && e.status === 401) throw e

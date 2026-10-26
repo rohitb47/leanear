@@ -1,7 +1,8 @@
 "use client"
 
-import { project as throwTo, rubber, set, spring } from "@leanear/ui/spring"
-import { useEffect, useLayoutEffect, useRef, useState } from "react"
+import { Copy } from "@leanear/ui/copy"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useRef, useState } from "react"
 import {
   ALL_STATUSES,
   STATUS_NAME,
@@ -12,83 +13,48 @@ import {
   type Task,
 } from "@/lib/sync/types"
 import { loadActivity, patch, upload } from "@/lib/store/patch"
-import { api } from "@/trpc/client"
-import { useApp } from "@/components/chrome/app"
-import { I } from "@/components/common/icons"
-import { md } from "@/lib/ui/markdown"
-import { Menu } from "@/components/chrome/menu"
-import { velocity } from "@/lib/ui/motion"
 import {
   liveMembers,
   putTask,
   refOf,
   toast,
+  undoable,
   useData,
   type Data,
 } from "@/lib/store/store"
-import { Av, StatusDot } from "@/components/common/badges"
+import { api } from "@/trpc/client"
+import { useApp } from "@/components/chrome/app"
+import { Dialog } from "@/components/chrome/dialog"
+import { Menu } from "@/components/chrome/menu"
+import { Av, StatusIcon } from "@/components/common/avatar"
+import { I } from "@/components/common/icons"
+import { MdEditor } from "@/components/common/md-editor"
+import { Assignees } from "@/components/task/new-task"
+import { md } from "@/lib/ui/markdown"
 import { ago, copy } from "@/lib/ui/format"
 
-/** The task panel. Slides in beside the board; throw its top bar right to put it away. */
+/**
+ * A task, in a dialog over the board. Click outside or press Escape to close
+ * it; Escape in a field leaves the field first.
+ */
 export function Panel({ taskId }: { taskId: string | null }) {
-  const [shown, setShown] = useState<string | null>(taskId)
-  const ref = useRef<HTMLElement>(null)
-  const isIn = useRef(false)
-  const exitVel = useRef(0)
-  if (taskId && taskId !== shown) setShown(taskId)
-
-  useLayoutEffect(() => {
-    const el = ref.current
-    if (!el) return
-    const w = el.offsetWidth + 24
-    if (taskId) {
-      if (!isIn.current) set(el, { x: w })
-      isIn.current = true
-      spring(el, {}, { r: 0.38 })
-    } else if (isIn.current) {
-      spring(
-        el,
-        { x: w },
-        {
-          r: 0.34,
-          v: { x: exitVel.current },
-          keep: true,
-          onRest: () => {
-            isIn.current = false
-            exitVel.current = 0
-            setShown(null)
-          },
-        }
-      )
-    }
-  }, [taskId, shown])
-
-  if (!shown) return null
+  const { closeTask } = useApp()
+  // Keep drawing the task while the dialog fades away.
+  const [kept, setKept] = useState(taskId)
+  if (taskId && taskId !== kept) setKept(taskId)
   return (
-    <aside
-      className="panel"
-      ref={ref}
-      style={taskId ? undefined : { pointerEvents: "none" }}
+    <Dialog
+      open={!!taskId}
+      onClose={closeTask}
+      label="Task"
+      className="taskdlg"
     >
-      <PanelBody
-        key={shown}
-        id={shown}
-        closing={!taskId}
-        onThrow={(v) => (exitVel.current = v)}
-      />
-    </aside>
+      {kept && <Body key={kept} id={kept} closing={!taskId} />}
+    </Dialog>
   )
 }
 
-function PanelBody({
-  id,
-  closing,
-  onThrow,
-}: {
-  id: string
-  closing: boolean
-  onThrow: (vx: number) => void
-}) {
+function Body({ id, closing }: { id: string; closing: boolean }) {
   const d = useData()
   const { closeTask } = useApp()
   const t = d.tasks[id]
@@ -96,60 +62,10 @@ function PanelBody({
     k: "status" | "type" | "who" | "more"
     el: HTMLElement
   }>(null)
-  const [firstStatus] = useState(t?.status)
 
   useEffect(() => {
     if (!t && !closing) closeTask()
   }, [t, closing, closeTask])
-
-  /* Drag the top bar to the right to dismiss. */
-  const pd = useRef<{
-    sx: number
-    started: boolean
-    hist: [number, number, number][]
-    w: number
-    el: HTMLElement
-  } | null>(null)
-  const suppress = useRef(false)
-  const down = (e: React.PointerEvent) => {
-    if (e.button !== 0 || (e.target as HTMLElement).closest("button")) return
-    const el = e.currentTarget.parentElement as HTMLElement
-    pd.current = {
-      sx: e.clientX,
-      started: false,
-      hist: [[e.clientX, 0, performance.now()]],
-      w: el.offsetWidth,
-      el,
-    }
-    ;(e.currentTarget as HTMLElement).setPointerCapture(e.pointerId)
-  }
-  const move = (e: React.PointerEvent) => {
-    const s = pd.current
-    if (!s) return
-    const dx = e.clientX - s.sx
-    if (!s.started) {
-      if (Math.abs(dx) < 4) return
-      s.started = true
-      suppress.current = true
-      document.documentElement.classList.add("dragging")
-    }
-    set(s.el, { x: dx < 0 ? -rubber(-dx, s.w) : dx })
-    s.hist.push([e.clientX, 0, performance.now()])
-    if (s.hist.length > 10) s.hist.shift()
-  }
-  const up = (e: React.PointerEvent) => {
-    const s = pd.current
-    pd.current = null
-    document.documentElement.classList.remove("dragging")
-    if (!s?.started) return
-    setTimeout(() => (suppress.current = false), 0)
-    const { vx } = velocity(s.hist)
-    const x = e.clientX - s.sx
-    if (x + throwTo(vx) > s.w / 2) {
-      onThrow(vx)
-      closeTask()
-    } else spring(s.el, {}, { r: 0.38, v: { x: vx } })
-  }
 
   if (!t) return null
   const ref = refOf(d, t)
@@ -160,39 +76,24 @@ function PanelBody({
       const el = e.currentTarget
       setMenu((m) => (m?.k === k ? null : { k, el }))
     }
+  const setStatus = (s: Status) => {
+    setMenu(null)
+    if (s !== t.status)
+      void patch(t.id, { status: s }, () =>
+        api.tasks.move.mutate({ id: t.id, status: s })
+      )
+  }
 
   return (
     <>
-      <div
-        className="ptop"
-        onPointerDown={down}
-        onPointerMove={move}
-        onPointerUp={up}
-        onPointerCancel={up}
-      >
-        <span className="handle" aria-hidden="true" />
+      <div className="ptop">
         <span className="cid">{ref}</span>
-        <span className="type">{TYPE_NAME[t.type]}</span>
+        <Copy text={ref} />
         <div className="grow" />
-        <button
-          className="btn bare sm"
-          onClick={async () => {
-            if (suppress.current) return
-            toast(
-              (await copy(ref)) ? `Copied ${ref}` : "Select the id to copy it"
-            )
-          }}
-        >
-          Copy id
-        </button>
-        <button className="circle" onClick={toggle("more")} aria-label="More">
+        <button className="icon" onClick={toggle("more")} aria-label="More">
           {I.more}
         </button>
-        <button
-          className="circle"
-          onClick={() => !suppress.current && closeTask()}
-          aria-label="Close"
-        >
+        <button className="icon" onClick={closeTask} aria-label="Close">
           {I.close}
         </button>
       </div>
@@ -201,22 +102,15 @@ function PanelBody({
         <Title t={t} />
         <div className="props">
           <button className="prop" onClick={toggle("status")}>
-            <StatusDot s={t.status} />
-            <span
-              key={t.status}
-              className={`lbl${t.status !== firstStatus ? " morph" : ""}`}
-            >
-              {STATUS_NAME[t.status]}
-            </span>
+            <StatusIcon s={t.status} />
+            {STATUS_NAME[t.status]}
           </button>
           <button className="prop" onClick={toggle("type")}>
-            <span className="type" style={{ color: "inherit" }}>
-              {TYPE_NAME[t.type]}
-            </span>
+            {TYPE_NAME[t.type]}
           </button>
           <button className="prop" onClick={toggle("who")}>
             <Av m={assignee} />
-            <span>{assignee ? assignee.name : "No one"}</span>
+            {assignee ? assignee.name : "No one"}
           </button>
         </div>
         <Notes t={t} />
@@ -231,18 +125,9 @@ function PanelBody({
         onClose={() => setMenu(null)}
       >
         {ALL_STATUSES.map((s, i) => (
-          <button
-            key={s}
-            onClick={() => {
-              setMenu(null)
-              if (s !== t.status)
-                void patch(t.id, { status: s }, () =>
-                  api.tasks.move.mutate({ id: t.id, status: s })
-                )
-            }}
-          >
-            <StatusDot s={s} />
-            <span>{STATUS_NAME[s]}</span>
+          <button key={s} onClick={() => setStatus(s)}>
+            <StatusIcon s={s} />
+            {STATUS_NAME[s]}
             {t.status === s ? (
               <span className="check">{I.check}</span>
             ) : i < 4 ? (
@@ -267,7 +152,7 @@ function PanelBody({
                 )
             }}
           >
-            <span>{TYPE_NAME[k]}</span>
+            {TYPE_NAME[k]}
             {t.type === k && <span className="check">{I.check}</span>}
           </button>
         ))}
@@ -276,44 +161,31 @@ function PanelBody({
         anchor={menu?.el ?? null}
         open={menu?.k === "who"}
         onClose={() => setMenu(null)}
+        width={220}
       >
-        {[null, ...liveMembers(d)].map((m) => (
-          <button
-            key={m?.id ?? "none"}
-            onClick={() => {
-              setMenu(null)
-              const v = m?.id ?? null
-              if (v !== t.assigneeId)
-                void patch(t.id, { assigneeId: v }, () =>
-                  api.tasks.update.mutate({ id: t.id, assignee: v ?? "none" })
-                )
-            }}
-          >
-            <Av m={m} />
-            <span>
-              {m
-                ? m.id === d.me.memberId
-                  ? `${m.name} (you)`
-                  : m.name
-                : "No one"}
-            </span>
-            {(t.assigneeId ?? null) === (m?.id ?? null) && (
-              <span className="check">{I.check}</span>
-            )}
-          </button>
-        ))}
+        <Assignees
+          value={t.assigneeId}
+          onPick={(v) => {
+            setMenu(null)
+            if (v !== t.assigneeId)
+              void patch(t.id, { assigneeId: v }, () =>
+                api.tasks.update.mutate({ id: t.id, assignee: v ?? "none" })
+              )
+          }}
+        />
       </Menu>
       <Menu
         anchor={menu?.el ?? null}
         open={menu?.k === "more"}
         onClose={() => setMenu(null)}
+        align="end"
       >
         <button
           onClick={async () => {
             setMenu(null)
             toast(
               (await copy(location.href))
-                ? "Copied link"
+                ? "Copied the link"
                 : "Copy the address bar instead"
             )
           }}
@@ -321,33 +193,30 @@ function PanelBody({
           Copy link
         </button>
         {t.status !== "canceled" && (
-          <button
-            onClick={() => {
-              setMenu(null)
-              void patch(t.id, { status: "canceled" }, () =>
-                api.tasks.move.mutate({ id: t.id, status: "canceled" })
-              )
-            }}
-          >
-            Cancel task
-          </button>
+          <button onClick={() => setStatus("canceled")}>Cancel task</button>
         )}
         <hr />
         <button
-          style={{ color: "var(--red)" }}
+          className="danger"
           onClick={async () => {
             setMenu(null)
-            if (!confirm(`Delete ${ref}? This can't be undone.`)) return
+            const prev = t
+            putTask({ ...t, deleted: true })
+            closeTask()
             try {
-              const prev = t
-              putTask({ ...t, deleted: true })
-              closeTask()
-              await api.tasks.delete.mutate({ id: prev.id }).catch((e) => {
-                putTask(prev)
-                throw e
-              })
-              toast(`Deleted ${ref}`)
+              await api.tasks.delete.mutate({ id: prev.id })
+              toast(
+                `Moved ${ref} to the trash`,
+                undoable(ref, async () => {
+                  const r = await api.log.restore.mutate({
+                    kind: "task",
+                    id: prev.id,
+                  })
+                  if ("task" in r && r.task) putTask(r.task)
+                })
+              )
             } catch (e) {
+              putTask(prev)
               toast((e as Error).message)
             }
           }}
@@ -366,7 +235,7 @@ function Title({ t }: { t: Task }) {
       el.current.textContent = t.title
   }, [t.title])
   return (
-    <h3
+    <h2
       ref={el}
       className="ttl"
       contentEditable
@@ -378,6 +247,7 @@ function Title({ t }: { t: Task }) {
           e.currentTarget.blur()
         }
         if (e.key === "Escape") {
+          e.stopPropagation()
           e.currentTarget.textContent = t.title
           e.currentTarget.blur()
         }
@@ -394,27 +264,25 @@ function Title({ t }: { t: Task }) {
       }}
     >
       {t.title}
-    </h3>
+    </h2>
   )
 }
 
-/** Paste an image into a textarea: upload it and insert a Markdown link at the cursor. */
-export function usePasteImage(
-  taskId: string | null,
+/** Paste an image into a field: upload it and insert a Markdown link at the cursor. */
+function usePasteImage(
+  taskId: string,
   onText: (fn: (v: string) => string) => void
 ) {
   return async (
     e: React.ClipboardEvent<HTMLTextAreaElement | HTMLInputElement>
   ) => {
-    const item = [...e.clipboardData.items].find((i) =>
-      i.type.startsWith("image/")
-    )
-    if (!item) return
-    e.preventDefault()
-    const file = item.getAsFile()
+    const file = [...e.clipboardData.items]
+      .find((i) => i.type.startsWith("image/"))
+      ?.getAsFile()
     if (!file) return
+    e.preventDefault()
     const at = e.currentTarget.selectionStart ?? 0
-    toast("Uploading screenshot…")
+    toast("Uploading the screenshot")
     try {
       const path = await upload(file, taskId)
       onText((v) => v.slice(0, at) + `![screenshot](${path})` + v.slice(at))
@@ -436,18 +304,18 @@ function Notes({ t }: { t: Task }) {
   }
   return (
     <section>
-      <div className="notes-head">
-        <span>Notes</span>
+      <div className="sec">
+        Notes
         {edit === null ? (
           <button className="btn bare sm" onClick={() => setEdit(t.notes)}>
             Edit
           </button>
         ) : (
-          <span style={{ display: "flex", gap: 4 }}>
+          <span style={{ display: "flex", gap: 4, marginLeft: "auto" }}>
             <button className="btn bare sm" onClick={() => setEdit(null)}>
               Cancel
             </button>
-            <button className="btn primary sm" onClick={save}>
+            <button className="btn sm" onClick={save}>
               Save
             </button>
           </span>
@@ -460,18 +328,18 @@ function Notes({ t }: { t: Task }) {
             dangerouslySetInnerHTML={{ __html: md(t.notes) }}
           />
         ) : (
-          <button className="muted" onClick={() => setEdit("")}>
-            No notes yet. Add some.
+          <button className="addnotes" onClick={() => setEdit("")}>
+            Add notes
           </button>
         )
       ) : (
-        <textarea
-          className="field"
-          rows={8}
+        <MdEditor
+          box
           autoFocus
+          label="Notes"
           value={edit}
           placeholder="Markdown. Paste a screenshot with ⌘V."
-          onChange={(e) => setEdit(e.target.value)}
+          onChange={setEdit}
           onPaste={paste}
           onKeyDown={(e) => {
             if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) save()
@@ -492,7 +360,7 @@ function describe(a: Activity, d: Data) {
     id ? (d.members[id]?.name ?? "someone") : null
   switch (a.kind) {
     case "created":
-      return <>created this</>
+      return <>added this</>
     case "moved":
       return (
         <>
@@ -505,19 +373,18 @@ function describe(a: Activity, d: Data) {
           <>took it</>
         ) : (
           <>
-            assigned it to <b>{name(data.to)}</b>
+            gave it to <b>{name(data.to)}</b>
           </>
         )
       ) : (
-        <>removed the assignee</>
+        <>unassigned it</>
       )
     case "renamed":
       return <>renamed it</>
     case "retyped":
       return (
         <>
-          changed the type to{" "}
-          <b>{TYPE_NAME[data.to as Task["type"]] ?? data.to}</b>
+          made it a <b>{TYPE_NAME[data.to as Task["type"]] ?? data.to}</b>
         </>
       )
     case "notes":
@@ -529,68 +396,109 @@ function describe(a: Activity, d: Data) {
 
 function Feed({ t, d }: { t: Task; d: Data }) {
   const items = d.activity[t.id]
-  // What was there when the feed first loaded; anything after rises in.
-  const [base, setBase] = useState<Set<number> | null>(null)
   const [prev, setPrev] = useState<number | null>(null)
-  if (items && !base) setBase(new Set(items.map((a) => a.id)))
-  const fresh = (id: number) => !!base && !base.has(id)
-
   return (
-    <div className="feed">
-      <h4>Activity</h4>
-      {!items && <div className="ev muted">Loading…</div>}
-      {items?.length === 0 && <div className="ev muted">Nothing yet.</div>}
-      {items?.map((a) => {
-        const who = d.members[a.actorId]
-        return (
-          <div key={a.id} className={`ev${fresh(a.id) ? " enter" : ""}`}>
-            <Av m={who} />
-            <div className="what">
-              <b>{who?.name ?? "Someone"}</b> {describe(a, d)}
-              {a.kind === "notes" && (
-                <>
-                  {" "}
-                  <button
-                    className="mono"
-                    onClick={() => setPrev(prev === a.id ? null : a.id)}
-                  >
-                    {prev === a.id ? "hide" : "previous"}
-                  </button>
-                  {prev === a.id && (
+    <section>
+      <div className="sec">Activity</div>
+      <div className="events">
+        {!items && <div className="ev">Loading</div>}
+        <AnimatePresence initial={false}>
+          {items?.map((a) => {
+            const who = d.members[a.actorId]
+            return (
+              <motion.div
+                key={a.id}
+                className="ev"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+              >
+                <Av m={who} />
+                <div className="what">
+                  <b>{who?.name ?? "Someone"}</b> {describe(a, d)}
+                  {a.kind === "notes" && (
+                    <>
+                      {" "}
+                      <button
+                        className="linkish"
+                        onClick={() => setPrev(prev === a.id ? null : a.id)}
+                      >
+                        {prev === a.id ? "hide" : "before"}
+                      </button>
+                      {prev === a.id && (
+                        <div
+                          className="bubble md"
+                          dangerouslySetInnerHTML={{
+                            __html: md(String(a.data?.prev ?? "") || "_Empty_"),
+                          }}
+                        />
+                      )}
+                    </>
+                  )}
+                  {a.body && (
                     <div
                       className="bubble md"
-                      dangerouslySetInnerHTML={{
-                        __html: md(String(a.data?.prev ?? "") || "_Empty_"),
-                      }}
+                      dangerouslySetInnerHTML={{ __html: md(a.body) }}
                     />
                   )}
-                </>
-              )}
-              {a.body && (
-                <div
-                  className="bubble md"
-                  dangerouslySetInnerHTML={{ __html: md(a.body) }}
-                />
-              )}
-            </div>
-            <span
-              className="when"
-              title={new Date(a.createdAt).toLocaleString()}
-            >
-              {ago(a.createdAt)}
-            </span>
-          </div>
-        )
-      })}
-    </div>
+                </div>
+                <span
+                  className="when"
+                  title={new Date(a.createdAt).toLocaleString()}
+                  suppressHydrationWarning
+                >
+                  {ago(a.createdAt)}
+                </span>
+              </motion.div>
+            )
+          })}
+        </AnimatePresence>
+      </div>
+    </section>
   )
 }
 
 function Composer({ t, d }: { t: Task; d: Data }) {
   const [v, setV] = useState("")
   const [busy, setBusy] = useState(false)
-  const agent = liveMembers(d).find((m) => m.kind === "agent")
+  // An @ being typed: where it starts, the letters after it, the row picked.
+  const [at, setAt] = useState<{
+    start: number
+    q: string
+    sel: number
+  } | null>(null)
+  const input = useRef<HTMLInputElement>(null)
+  const members = liveMembers(d)
+  const agent = members.find((m) => m.kind === "agent")
   const paste = usePasteImage(t.id, (fn) => setV((x) => fn(x)))
+  const matches = at
+    ? members
+        .filter((m) => m.name.toLowerCase().includes(at.q.toLowerCase()))
+        .sort(
+          (a, b) =>
+            Number(!a.name.toLowerCase().startsWith(at.q.toLowerCase())) -
+            Number(!b.name.toLowerCase().startsWith(at.q.toLowerCase()))
+        )
+        .slice(0, 6)
+    : []
+
+  const look = (text: string, caret: number) => {
+    const m = /(^|\s)@([^\s@]*)$/.exec(text.slice(0, caret))
+    setAt(m ? { start: caret - m[2].length - 1, q: m[2], sel: 0 } : null)
+  }
+  const pick = (name: string) => {
+    const el = input.current
+    if (!el || !at) return
+    const caret = el.selectionStart ?? v.length
+    const next = `${v.slice(0, at.start)}@${name} ${v.slice(caret)}`
+    const pos = at.start + name.length + 2
+    setV(next)
+    setAt(null)
+    requestAnimationFrame(() => {
+      el.focus()
+      el.setSelectionRange(pos, pos)
+    })
+  }
+
   return (
     <form
       className="composer"
@@ -612,21 +520,68 @@ function Composer({ t, d }: { t: Task; d: Data }) {
         }
       }}
     >
+      {matches.length > 0 && at && (
+        <div className="mentions" role="listbox" aria-label="Members">
+          {matches.map((m, i) => (
+            <button
+              key={m.id}
+              type="button"
+              role="option"
+              aria-selected={i === at.sel}
+              className={i === at.sel ? "active" : ""}
+              onMouseDown={(e) => e.preventDefault()}
+              onMouseMove={() => i !== at.sel && setAt({ ...at, sel: i })}
+              onClick={() => pick(m.name)}
+            >
+              <Av m={m} />
+              <span>{m.id === d.me.memberId ? `${m.name} (you)` : m.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
       <input
+        ref={input}
         className="field"
         value={v}
-        onChange={(e) => setV(e.target.value)}
+        onChange={(e) => {
+          setV(e.target.value)
+          look(e.target.value, e.target.selectionStart ?? e.target.value.length)
+        }}
+        onSelect={(e) =>
+          look(e.currentTarget.value, e.currentTarget.selectionStart ?? 0)
+        }
+        onBlur={() => setAt(null)}
         onPaste={paste}
+        onKeyDown={(e) => {
+          if (at && matches.length) {
+            if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+              e.preventDefault()
+              const n = matches.length
+              setAt({
+                ...at,
+                sel: (at.sel + (e.key === "ArrowDown" ? 1 : -1) + n) % n,
+              })
+              return
+            }
+            if (e.key === "Enter" || e.key === "Tab") {
+              e.preventDefault()
+              pick(matches[at.sel].name)
+              return
+            }
+            if (e.key === "Escape") {
+              e.preventDefault()
+              setAt(null)
+              return
+            }
+          }
+          if (e.key === "Escape") e.currentTarget.blur()
+        }}
         placeholder={
           agent ? `Comment, or @${agent.name} to hand it over` : "Comment"
         }
         autoComplete="off"
       />
-      <button
-        className="btn primary"
-        type="submit"
-        disabled={busy || !v.trim()}
-      >
+      <button className="btn" type="submit" disabled={busy || !v.trim()}>
         Send
       </button>
     </form>

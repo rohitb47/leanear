@@ -1,42 +1,36 @@
 "use client"
 
-import { useEffect, useLayoutEffect, useState, type ReactNode } from "react"
-import { usePresence } from "@/lib/ui/motion"
+import { AnimatePresence, motion } from "motion/react"
+import { useEffect, useRef, useSyncExternalStore, type ReactNode } from "react"
+import { createPortal } from "react-dom"
 
-/** A small menu under its anchor. Springs open, closes on outside press or Escape. */
+/**
+ * A small menu by its anchor: a card with a hairline and a soft shadow, no
+ * dimming behind. Closes on an outside press or Escape.
+ */
 export function Menu({
   anchor,
   open,
   onClose,
   children,
   width = 200,
+  align = "start",
 }: {
   anchor: HTMLElement | null
   open: boolean
   onClose: () => void
   children: ReactNode
   width?: number
+  align?: "start" | "end"
 }) {
-  const { mounted, ref, closing } = usePresence<HTMLDivElement>(
-    open,
-    { s: 0.96, o: 0, y: -4 },
-    { s: 0.97, o: 0, y: -4 },
-    0.22,
-    0.18
+  const ref = useRef<HTMLDivElement>(null)
+  const client = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
   )
-  const [pos, setPos] = useState<{ left: number; top: number } | null>(null)
-
-  useLayoutEffect(() => {
-    if (!open || !anchor) return
-    const r = anchor.getBoundingClientRect()
-    const left = Math.max(8, Math.min(r.left, window.innerWidth - width - 8))
-    const below = r.bottom + 6
-    const top =
-      below + 320 > window.innerHeight && r.top > 340
-        ? r.top - 6 - Math.min(320, ref.current?.offsetHeight ?? 200)
-        : below
-    setPos({ left, top })
-  }, [open, anchor, width, ref])
+  // Placed from the anchor as it opens; an exiting menu keeps where it was.
+  const pos = open && anchor ? place(anchor, width, align) : null
 
   useEffect(() => {
     if (!open) return
@@ -57,22 +51,43 @@ export function Menu({
       document.removeEventListener("pointerdown", down, true)
       window.removeEventListener("keydown", key, true)
     }
-  }, [open, anchor, onClose, ref])
+  }, [open, anchor, onClose])
 
-  if (!mounted) return null
-  return (
-    <div
-      ref={ref}
-      className="menu"
-      role="menu"
-      style={{
-        left: pos?.left ?? -9999,
-        top: pos?.top ?? -9999,
-        minWidth: width,
-        pointerEvents: closing ? "none" : undefined,
-      }}
-    >
-      {children}
-    </div>
+  // On the page itself, so no dialog or filter around the anchor can clip it.
+  if (!client) return null
+  return createPortal(
+    <AnimatePresence>
+      {open && pos && (
+        <motion.div
+          ref={ref}
+          className="menu"
+          role="menu"
+          style={{
+            left: pos.left,
+            top: pos.top,
+            bottom: pos.bottom,
+            width,
+            transformOrigin: `${align === "end" ? "100%" : "0"} ${pos.up ? "100%" : "0"}`,
+          }}
+          initial={{ opacity: 0, scale: 0.96, y: pos.up ? 4 : -4 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.97, transition: { duration: 0.12 } }}
+          transition={{ type: "spring", bounce: 0, duration: 0.22 }}
+        >
+          {children}
+        </motion.div>
+      )}
+    </AnimatePresence>,
+    document.body
   )
+}
+
+function place(anchor: HTMLElement, width: number, align: "start" | "end") {
+  const r = anchor.getBoundingClientRect()
+  const x = align === "end" ? r.right - width : r.left
+  const left = Math.max(8, Math.min(x, window.innerWidth - width - 8))
+  const up = r.bottom + 6 + 300 > window.innerHeight && r.top > 320
+  return up
+    ? { left, top: undefined, bottom: window.innerHeight - r.top + 6, up }
+    : { left, top: r.bottom + 6, bottom: undefined, up }
 }
