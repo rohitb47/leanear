@@ -8,7 +8,7 @@ export default function Keys() {
     <>
       <DocHead
         href="/docs/keys"
-        lead="Every agent gets its own key. Leanear stores only a hash of it."
+        lead="Every agent gets its own key. shipth.at stores only a hash of it."
       />
       <ul className="plain">
         <li>

@@ -2,7 +2,7 @@ import "server-only"
 import Stripe from "stripe"
 
 /**
- * Billing is on when there's a Stripe key, which is Leanear Cloud. A
+ * Billing is on when there's a Stripe key, which is shipth.at Cloud. A
  * self-hosted copy leaves it out and gets everything with no caps.
  */
 export const billingOn = () => !!process.env.STRIPE_SECRET_KEY
@@ -16,7 +16,7 @@ export function stripe() {
 
 /** Cloud: one flat price for the whole workspace. */
 export const PLAN = {
-  name: "Leanear Cloud",
+  name: "shipth.at Cloud",
   cents: 900,
   currency: "usd",
   lookup: "leanear_cloud_monthly",
@@ -25,7 +25,7 @@ export const PLAN = {
   agents: 5,
 }
 
-/** Leanear Cloud's monthly price, made the first time it's needed. */
+/** shipth.at Cloud's monthly price, made the first time it's needed. */
 export async function cloudPrice() {
   const s = stripe()
   const found = await s.prices.list({ lookup_keys: [PLAN.lookup], limit: 1 })

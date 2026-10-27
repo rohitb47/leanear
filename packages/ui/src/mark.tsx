@@ -1,4 +1,4 @@
-// The Leanear mark: a soft square with a round hole, symmetric on every axis.
+// The shipth.at mark: a soft square with a round hole, symmetric on every axis.
 export const MARK_PATH =
   "M6.4 1H17.6A5.4 5.4 0 0 1 23 6.4V17.6A5.4 5.4 0 0 1 17.6 23H6.4A5.4 5.4 0 0 1 1 17.6V6.4A5.4 5.4 0 0 1 6.4 1ZM12 3.5A8.5 8.5 0 1 0 12 20.5A8.5 8.5 0 1 0 12 3.5Z"
 

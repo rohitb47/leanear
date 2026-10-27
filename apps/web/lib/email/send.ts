@@ -2,12 +2,12 @@ import "server-only"
 import { LeanError } from "@/lib/utils"
 
 // Email, through Resend. On when RESEND_API_KEY is set; without it, invites
-// are links to copy, and nothing else in Leanear sends mail.
+// are links to copy, and nothing else in shipth.at sends mail.
 
 export const mailOn = () => !!process.env.RESEND_API_KEY
 
 /** Who mail comes from: a verified sender on your Resend domain. */
-const FROM = () => process.env.EMAIL_FROM || "Leanear <hello@leanear.app>"
+const FROM = () => process.env.EMAIL_FROM || "shipth.at <hello@shipth.at>"
 
 export async function sendMail(m: {
   to: string
@@ -48,8 +48,8 @@ export function inviteMail(a: {
   workspace: string
   link: string
 }) {
-  const subject = `${a.from} invited you to ${a.workspace} on Leanear`
-  const text = `${a.from} invited you to ${a.workspace} on Leanear, one board for a small team and all its agents.
+  const subject = `${a.from} invited you to ${a.workspace} on shipth.at`
+  const text = `${a.from} invited you to ${a.workspace} on shipth.at, one board for a small team and all its agents.
 
 Join: ${a.link}
 
@@ -58,7 +58,7 @@ The link works for 7 days.`
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center">
 <table role="presentation" width="100%" style="max-width:440px" cellpadding="0" cellspacing="0">
 <tr><td style="font-size:22px;font-weight:600;letter-spacing:-0.02em;padding-bottom:12px">Join ${esc(a.workspace)}</td></tr>
-<tr><td style="font-size:15px;line-height:1.55;color:#555555;padding-bottom:28px">${esc(a.from)} invited you to ${esc(a.workspace)} on Leanear, one board for a small team and all its agents.</td></tr>
+<tr><td style="font-size:15px;line-height:1.55;color:#555555;padding-bottom:28px">${esc(a.from)} invited you to ${esc(a.workspace)} on shipth.at, one board for a small team and all its agents.</td></tr>
 <tr><td style="padding-bottom:28px"><a href="${esc(a.link)}" style="display:inline-block;padding:12px 22px;border-radius:999px;background:#ff6a3d;color:#ffffff;font-size:15px;font-weight:500;text-decoration:none">Join ${esc(a.workspace)}</a></td></tr>
 <tr><td style="font-size:13px;line-height:1.5;color:#888888">The link works for 7 days. If you weren't expecting this, you can ignore it.</td></tr>
 </table></td></tr></table></body></html>`

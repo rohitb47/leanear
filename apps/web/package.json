@@ -1,5 +1,5 @@
 {
-  "name": "@leanear/web",
+  "name": "@shipthat/web",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -15,7 +15,7 @@
     "db:push:prod": "node --env-file=.env.production.local node_modules/prisma/build/index.js db push"
   },
   "dependencies": {
-    "@leanear/ui": "workspace:*",
+    "@shipthat/ui": "workspace:*",
     "@prisma/adapter-pg": "^7.10.1",
     "@prisma/client": "^7.10.1",
     "@trpc/client": "^11.19.0",

@@ -7,12 +7,12 @@ import {
   useRef,
   useState,
 } from "react"
-import { Mark } from "@leanear/ui/mark"
+import { Mark } from "@shipthat/ui/mark"
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
-import { Logo } from "@leanear/ui/logos"
+import { Logo } from "@shipthat/ui/logos"
 import { Settings, useSettings } from "@/components/landing/settings"
-import { Morph } from "@leanear/ui/morph"
-import { project, set, spring } from "@leanear/ui/spring"
+import { Morph } from "@shipthat/ui/morph"
+import { project, set, spring } from "@shipthat/ui/spring"
 
 type Status = "backlog" | "todo" | "doing" | "done"
 type Task = {
@@ -30,94 +30,94 @@ const COLS: { key: Status; label: string }[] = [
   { key: "done", label: "Done" },
 ]
 
-// Leanear is built in Leanear, so the board shows its own tasks.
+// shipth.at is built in shipth.at, so the board shows its own tasks.
 const START: Task[] = [
   {
-    id: "LEA-21",
+    id: "SHI-21",
     title: "Paste screenshots into notes",
     type: "Feature",
     status: "backlog",
     who: "rohit",
   },
   {
-    id: "LEA-24",
+    id: "SHI-24",
     title: "Docker compose for self-hosting",
     type: "Feature",
     status: "backlog",
     who: "claude",
   },
   {
-    id: "LEA-26",
+    id: "SHI-26",
     title: "Public changelog from Done tasks",
     type: "Idea",
     status: "backlog",
     who: "rohit",
   },
   {
-    id: "LEA-27",
+    id: "SHI-27",
     title: "Mention a teammate in a comment",
     type: "Idea",
     status: "backlog",
     who: "rohit",
   },
   {
-    id: "LEA-28",
+    id: "SHI-28",
     title: "Export a project as Markdown",
     type: "Feature",
     status: "backlog",
     who: "claude",
   },
   {
-    id: "LEA-20",
+    id: "SHI-20",
     title: "Comment threads collapse after three",
     type: "Feature",
     status: "todo",
     who: "claude",
   },
   {
-    id: "LEA-12",
+    id: "SHI-12",
     title: "Agent keys, hashed and revocable",
     type: "Feature",
     status: "todo",
     who: "claude",
   },
   {
-    id: "LEA-17",
+    id: "SHI-17",
     title: "J and K skip the Done column",
     type: "Bug",
     status: "todo",
     who: "claude",
   },
   {
-    id: "LEA-19",
+    id: "SHI-19",
     title: "⌘K finds tasks by id",
     type: "Feature",
     status: "todo",
     who: "rohit",
   },
   {
-    id: "LEA-9",
+    id: "SHI-9",
     title: "MCP server: next_task",
     type: "Feature",
     status: "doing",
     who: "claude",
   },
   {
-    id: "LEA-14",
+    id: "SHI-14",
     title: "Drag to reorder, with momentum",
     type: "Feature",
     status: "doing",
     who: "rohit",
   },
   {
-    id: "LEA-3",
+    id: "SHI-3",
     title: "Dark mode, the Apple way",
     type: "Feature",
     status: "done",
     who: "rohit",
   },
   {
-    id: "LEA-5",
+    id: "SHI-5",
     title: "Board loads in one request",
     type: "Feature",
     status: "done",
@@ -452,7 +452,7 @@ export function Board() {
         return wait(3400, 1)
       }
       const id = list.find(
-        (x) => x.status === "doing" && x.who === "claude" && x.id !== "LEA-9"
+        (x) => x.status === "doing" && x.who === "claude" && x.id !== "SHI-9"
       )?.id
       if (id) {
         moveTop(id, "done")
@@ -490,7 +490,7 @@ export function Board() {
           <div className="proj">
             <Mark size={18} />
             <span className="pname">{settings.name || "Untitled"}</span>
-            <span className="mono">LEA</span>
+            <span className="mono">SHI</span>
           </div>
           <div className="tabs" role="tablist">
             {(["board", "settings"] as const).map((v) => (
@@ -540,7 +540,7 @@ export function Board() {
                           who={t.who}
                           live={
                             liveId === t.id ||
-                            (t.id === "LEA-9" && t.status === "doing")
+                            (t.id === "SHI-9" && t.status === "doing")
                           }
                         />
                       </div>

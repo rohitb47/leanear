@@ -1,6 +1,6 @@
 "use client"
 
-import { Mark } from "@leanear/ui/mark"
+import { Mark } from "@shipthat/ui/mark"
 import { useState } from "react"
 import { authClient } from "@/lib/auth/client"
 import { hardGo, toast, useData } from "@/lib/store/store"
@@ -45,7 +45,7 @@ export function PlanCard({ back }: { back?: string }) {
   const { busy, start } = useStartPlan(back)
   return (
     <div className="plan">
-      <span className="name">Leanear Cloud</span>
+      <span className="name">shipth.at Cloud</span>
       <div className="amt">
         ${price}
         <span className="per">/month</span>

@@ -1,9 +1,9 @@
 "use client"
 
-import { Copy } from "@leanear/ui/copy"
-import { AGENTS, AppTile, type AgentKey } from "@leanear/ui/tiles"
+import { Copy } from "@shipthat/ui/copy"
+import { AGENTS, AppTile, type AgentKey } from "@shipthat/ui/tiles"
 
-// How each coding agent connects, the same lines as leanear.app/docs/mcp.
+// How each coding agent connects, the same lines as shipth.at/docs/mcp.
 
 export const TOOLS = Object.keys(AGENTS) as AgentKey[]
 
@@ -20,27 +20,27 @@ export function connectFor(tool: AgentKey, url: string, key: string) {
   switch (tool) {
     case "claude":
       return {
-        code: `claude mcp add --scope user --transport http leanear ${url} --header "Authorization: Bearer ${key}"`,
+        code: `claude mcp add --scope user --transport http shipthat ${url} --header "Authorization: Bearer ${key}"`,
       }
     case "cursor":
       return {
         file: "~/.cursor/mcp.json",
-        code: `{\n  "mcpServers": {\n    "leanear": {\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
+        code: `{\n  "mcpServers": {\n    "shipthat": {\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
       }
     case "codex":
       return {
         file: "~/.codex/config.toml, then your shell",
-        code: `[mcp_servers.leanear]\nurl = "${url}"\nbearer_token_env_var = "LEANEAR_KEY"\n\nexport LEANEAR_KEY=${key}`,
+        code: `[mcp_servers.shipthat]\nurl = "${url}"\nbearer_token_env_var = "SHIPTHAT_KEY"\n\nexport SHIPTHAT_KEY=${key}`,
       }
     case "copilot":
       return {
         file: ".vscode/mcp.json",
-        code: `{\n  "servers": {\n    "leanear": {\n      "type": "http",\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
+        code: `{\n  "servers": {\n    "shipthat": {\n      "type": "http",\n      "url": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
       }
     case "windsurf":
       return {
         file: "~/.codeium/windsurf/mcp_config.json",
-        code: `{\n  "mcpServers": {\n    "leanear": {\n      "serverUrl": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
+        code: `{\n  "mcpServers": {\n    "shipthat": {\n      "serverUrl": "${url}",\n      "headers": { "Authorization": "Bearer ${key}" }\n    }\n  }\n}`,
       }
   }
 }
@@ -158,21 +158,21 @@ export function Connect({
 }
 
 // Bringing a codebase: the agent reads the repo and fills the project. The
-// same words as leanear.app/docs/setup and skills/leanear-setup.
+// same words as shipth.at/docs/setup and skills/shipthat-setup.
 
-export const SKILL_INSTALL = `mkdir -p .claude/skills/leanear-setup
-curl -fsSL https://raw.githubusercontent.com/rohitb47/leanear/main/skills/leanear-setup/SKILL.md \\
-  -o .claude/skills/leanear-setup/SKILL.md`
+export const SKILL_INSTALL = `mkdir -p .claude/skills/shipthat-setup
+curl -fsSL https://raw.githubusercontent.com/rohitb47/leanear/main/skills/shipthat-setup/SKILL.md \\
+  -o .claude/skills/shipthat-setup/SKILL.md`
 
 /**
  * Claude Code, all in one paste: connect this agent for every repo (replacing
  * an old connection), then install the setup skill into this repo.
  */
 export const claudeSetup = (url: string, key: string) =>
-  `claude mcp remove leanear --scope user 2>/dev/null; claude mcp add --scope user --transport http leanear ${url} --header "Authorization: Bearer ${key}" && ${SKILL_INSTALL.replace(/ \\\n\s*/g, " ").replace("\n", " && ")}`
+  `claude mcp remove shipthat --scope user 2>/dev/null; claude mcp add --scope user --transport http shipthat ${url} --header "Authorization: Bearer ${key}" && ${SKILL_INSTALL.replace(/ \\\n\s*/g, " ").replace("\n", " && ")}`
 
 export const setupPrompt = (key: string) =>
-  `Set up Leanear for this codebase, in my Leanear project ${key}.
+  `Set up shipth.at for this codebase, in my shipth.at project ${key}.
 1. Read the repo: README, build files, folder layout, its own CLAUDE.md and AGENTS.md, and docs.
 2. Turn TODO, FIXME and HACK comments, open GitHub issues and any roadmap into tasks with create_task: a short title, a type, and where it came from. Check list_tasks first so nothing is duplicated. About 30 at most.
 3. Move the five that matter most to Todo and say why in a comment.

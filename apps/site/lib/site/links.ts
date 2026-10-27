@@ -3,8 +3,8 @@ import { cacheLife } from "next/cache"
 export const REPO = "rohitb47/leanear"
 export const GITHUB = `https://github.com/${REPO}`
 export const X = "https://x.com/rohitb47"
-export const URL = "https://leanear.app"
-export const APP = "https://cloud.leanear.app"
+export const URL = "https://shipth.at"
+export const APP = "https://cloud.shipth.at"
 
 /** Live star count, refreshed hourly. Null until the repo answers. */
 export async function stars(): Promise<number | null> {

@@ -1,4 +1,4 @@
-# Leanear
+# shipth.at
 
 @AGENTS.md
 
@@ -10,8 +10,8 @@ tRPC · Prisma · Postgres · Better Auth. Built the way Provida is; when in dou
 
 One pnpm workspace:
 
-- **`apps/web`**: the app at cloud.leanear.app, and the MCP server at `/mcp`.
-- **`apps/site`**: leanear.app, the landing page and docs.
+- **`apps/web`**: the app at cloud.shipth.at, and the MCP server at `/mcp`.
+- **`apps/site`**: shipth.at, the landing page and docs.
 - **`packages/ui`**: what both apps import (the spring engine, the mark, logos, Copy). A
   module moves here when the second app actually imports it, not in advance.
 
@@ -30,7 +30,7 @@ Run `pnpm install` and `pnpm check` from the repo root.
 
 - Load the **row-taste** skill before any page, screen, copy or design work: it's
   Rohit's taste across every project.
-- `DESIGN.md` at the root is Leanear's own look: tokens on top, the why underneath,
+- `DESIGN.md` at the root is shipth.at's own look: tokens on top, the why underneath,
   in [Google's DESIGN.md format](https://github.com/google-labs-code/design.md). It
   wins over row-taste where they differ. Tokens go there, never in this file.
 - The site (`apps/site`) is the reference, and the app is its product window made real.
@@ -38,7 +38,7 @@ Run `pnpm install` and `pnpm check` from the repo root.
   `npx @google/design.md lint DESIGN.md`.
 - Motion: layout changes (things moving, resizing, a selection sliding) and things
   appearing use Motion (`motion/react`). Drags, throws and other hand-driven physics use
-  `@leanear/ui/spring` (damping ratio + response). Nothing else. The reference is the
+  `@shipthat/ui/spring` (damping ratio + response). Nothing else. The reference is the
   site's demo board (`apps/site/components/landing/board.tsx`).
 
 ## Where a file goes
@@ -67,7 +67,7 @@ in code only.
 - **Stage what you changed**, not `git add -A`.
 - **Delete rather than disable.** Something out of scope goes entirely. git remembers.
 - **Write the rule, not the inventory**, in this file and in `docs/`.
-- Deploys: Vercel project `leanear` (root `apps/site`, leanear.app) and `leanear-app`
-  (root `apps/web`, cloud.leanear.app), both from `main`. The app's functions run in
+- Deploys: Vercel project `leanear` (root `apps/site`, shipth.at) and `leanear-app`
+  (root `apps/web`, cloud.shipth.at), both from `main`. The app's functions run in
   Sydney (`apps/web/vercel.json`), beside the Neon database: keep them next to it, since
   every query crosses the distance between them.

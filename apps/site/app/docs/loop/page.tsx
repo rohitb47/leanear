@@ -10,7 +10,7 @@ export default function Loop() {
         href="/docs/loop"
         lead="Assign tasks to your agent, then tell it to work through them. You review a list, not a chat log."
       />
-      <Code code="Work through my Leanear tasks." file="Prompt" />
+      <Code code="Work through my shipth.at tasks." file="Prompt" />
       <Steps>
         <li>
           It calls <code className="inline">next_task</code> and moves the task

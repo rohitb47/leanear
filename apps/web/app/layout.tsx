@@ -12,7 +12,7 @@ const display = Bricolage_Grotesque({
 const mono = Geist_Mono({ variable: "--font-mono", subsets: ["latin"] })
 
 export const metadata: Metadata = {
-  title: "Leanear",
+  title: "shipth.at",
   description: "One board for a small team and all its agents.",
   robots: { index: false },
 }

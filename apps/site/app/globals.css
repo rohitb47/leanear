@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Leanear tokens (mirrored in DESIGN.md at the repo root). Dark only, on pure black;
+/* shipth.at tokens (mirrored in DESIGN.md at the repo root). Dark only, on pure black;
    each surface is a small step lighter. Orange appears once per view. */
 :root {
   --page: #000000;
@@ -1067,7 +1067,7 @@ a {
   white-space: nowrap;
   margin-bottom: var(--s7);
 }
-/* "Leanear" in the letter's heading: the mark beside the name, in line. */
+/* "shipth.at" in the letter's heading: the mark beside the name, in line. */
 .letter .stamp {
   display: inline-flex;
   align-items: center;
@@ -1810,7 +1810,7 @@ a {
     grid-column: 1;
   }
 }
-/* Compare: a flat table with Leanear's column raised as a card */
+/* Compare: a flat table with shipth.at's column raised as a card */
 .compare-scroll {
   max-width: 920px;
   margin: 0 auto;

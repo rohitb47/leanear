@@ -5,7 +5,7 @@ import { nextCookies } from "better-auth/next-js"
 import { prisma } from "@/lib/prisma"
 
 /**
- * Sign-in for people: GitHub, and nothing else. Everyone using Leanear has
+ * Sign-in for people: GitHub, and nothing else. Everyone using shipth.at has
  * one. Agents never touch this; they use `lk_` keys (`./agent.ts`).
  */
 export const auth = betterAuth({

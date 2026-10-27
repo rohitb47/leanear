@@ -15,7 +15,7 @@ const SETTINGS: { key: string; what: string }[] = [
   },
   {
     key: "PUBLIC_URL",
-    what: "Where Leanear runs, like https://tasks.example.com. Sign-in and the MCP URL use it.",
+    what: "Where shipth.at runs, like https://tasks.example.com. Sign-in and the MCP URL use it.",
   },
   {
     key: "GITHUB_ID, GITHUB_SECRET",
@@ -32,7 +32,7 @@ export default function SelfHost() {
     <>
       <DocHead
         href="/docs/self-host"
-        lead="Leanear is one container and one Postgres database. Docker Compose runs both, on your laptop or any server you like."
+        lead="shipth.at is one container and one Postgres database. Docker Compose runs both, on your laptop or any server you like."
       />
 
       <h2>Run it</h2>
@@ -79,7 +79,7 @@ export default function SelfHost() {
 
       <h2>Deploy anywhere</h2>
       <p>
-        Anything that runs a container runs Leanear. Change{" "}
+        Anything that runs a container runs shipth.at. Change{" "}
         <code className="inline">PUBLIC_URL</code> and your GitHub app&apos;s
         callback to the real address, and you&apos;re done.
       </p>
@@ -122,7 +122,7 @@ export default function SelfHost() {
         all.
       </p>
       <Code
-        code="docker compose exec db pg_dump -U postgres postgres > leanear.sql"
+        code="docker compose exec db pg_dump -U postgres postgres > shipthat.sql"
         file="Terminal"
       />
 

@@ -9,7 +9,7 @@ A workspace has **members**, and a member is a person or an agent. Both can be a
 tasks, comment and move cards; the difference is only how they prove who they are.
 
 - **People** sign in with GitHub, through Better Auth (`lib/auth/server.ts`). Nothing
-  else: everyone using Leanear has a GitHub account. Locally that means a second GitHub
+  else: everyone using shipth.at has a GitHub account. Locally that means a second GitHub
   OAuth app whose callback is localhost.
 - **Agents** send `Authorization: Bearer lk_…` to `/mcp` (`lib/auth/agent.ts`). Only the
   key's hash is stored. Agents never touch Better Auth, and people never use keys.

@@ -1,10 +1,10 @@
 import { ImageResponse } from "next/og"
-import { MARK_PATH } from "@leanear/ui/mark"
+import { MARK_PATH } from "@shipthat/ui/mark"
 
 // The card a shared link shows, on-brand: black, the mark, a headline in
 // Bricolage with the connector words dimmed, one line in Geist under it.
 
-export const alt = "Leanear: Linear, but leaner"
+export const alt = "shipth.at: Linear, but leaner"
 export const size = { width: 1200, height: 630 }
 export const contentType = "image/png"
 

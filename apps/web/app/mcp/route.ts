@@ -37,7 +37,7 @@ async function handle(m: Msg, getCtx: () => Promise<C>): Promise<Json | null> {
       return reply({
         protocolVersion: VERSIONS.includes(want) ? want : VERSIONS[0],
         capabilities: { tools: { listChanged: false } },
-        serverInfo: { name: "leanear", title: "Leanear", version: "0.1.0" },
+        serverInfo: { name: "shipthat", title: "shipth.at", version: "0.1.0" },
         instructions: INSTRUCTIONS,
       })
     }
@@ -116,7 +116,7 @@ export async function POST(req: Request) {
 
 export function GET() {
   return new NextResponse(
-    "Leanear MCP. POST JSON-RPC here with Authorization: Bearer lk_…",
+    "shipth.at MCP. POST JSON-RPC here with Authorization: Bearer lk_…",
     {
       status: 405,
       headers: { Allow: "POST" },

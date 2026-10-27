@@ -1,16 +1,16 @@
 {
-  "name": "leanear-monorepo",
+  "name": "shipthat-monorepo",
   "private": true,
   "scripts": {
-    "dev": "pnpm --filter @leanear/web dev",
-    "dev:site": "pnpm --filter @leanear/site dev",
+    "dev": "pnpm --filter @shipthat/web dev",
+    "dev:site": "pnpm --filter @shipthat/site dev",
     "build": "pnpm -r build",
     "check": "pnpm -r check",
-    "db:push": "pnpm --filter @leanear/web db:push",
-    "db:push:prod": "pnpm --filter @leanear/web db:push:prod",
+    "db:push": "pnpm --filter @shipthat/web db:push",
+    "db:push:prod": "pnpm --filter @shipthat/web db:push:prod",
     "format": "prettier --write \"**/*.{ts,tsx,mjs,md,css}\""
   },
-  "packageManager": "pnpm@11.24.0",
+  "packageManager": "pnpm@12.15.0",
   "devDependencies": {
     "prettier": "^3.9.10",
     "prettier-plugin-tailwindcss": "^0.7.4"

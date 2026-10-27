@@ -58,7 +58,7 @@ export async function mustBePaid(ws: string) {
   const w = await workspace(ws)
   if (!running(w.billingStatus))
     throw new LeanError(
-      "This workspace's Leanear Cloud plan isn't active. Open Leanear to start it.",
+      "This workspace's shipth.at Cloud plan isn't active. Open shipth.at to start it.",
       402
     )
 }
@@ -71,7 +71,7 @@ export async function withinPlan(c: Pick<Ctx, "ws">, what: keyof typeof NOUN) {
   const n = (await usage(c.ws))[what]
   if (n >= PLAN[what])
     throw new LeanError(
-      `Leanear Cloud has room for ${PLAN[what]} ${NOUN[what]}. Remove one first, or run Leanear yourself for no caps.`
+      `shipth.at Cloud has room for ${PLAN[what]} ${NOUN[what]}. Remove one first, or run shipth.at yourself for no caps.`
     )
 }
 
@@ -102,7 +102,7 @@ async function startCheckout(
   if (!billingOn()) throw new LeanError("Billing is off on this server")
   const w = await workspace(c.ws)
   if (running(w.billingStatus))
-    throw new LeanError("This workspace is already on Leanear Cloud")
+    throw new LeanError("This workspace is already on shipth.at Cloud")
   // Only a path in this app, never somewhere else.
   const back = a.back && /^\/(?![\/\\])/.test(a.back) ? a.back : "/"
   const s = stripe()
@@ -186,13 +186,13 @@ export async function applySubscription(sub: Stripe.Subscription) {
       {
         action: `plan.${sub.status}`,
         kind: "workspace",
-        subject: { id: sub.id, label: "Leanear Cloud" },
+        subject: { id: sub.id, label: "shipth.at Cloud" },
         summary:
           sub.status === "past_due"
-            ? "A payment for Leanear Cloud didn't go through"
+            ? "A payment for shipth.at Cloud didn't go through"
             : now
-              ? "Leanear Cloud started"
-              : "Leanear Cloud ended",
+              ? "shipth.at Cloud started"
+              : "shipth.at Cloud ended",
       }
     )
   await prisma.workspace.update({

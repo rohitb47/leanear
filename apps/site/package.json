@@ -1,5 +1,5 @@
 {
-  "name": "@leanear/site",
+  "name": "@shipthat/site",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -11,7 +11,7 @@
     "check": "pnpm typecheck && pnpm lint && NEXT_DIST_DIR=.next-check pnpm build"
   },
   "dependencies": {
-    "@leanear/ui": "workspace:*",
+    "@shipthat/ui": "workspace:*",
     "motion": "14.1.0",
     "next": "16.4.3",
     "react": "19.3.0",

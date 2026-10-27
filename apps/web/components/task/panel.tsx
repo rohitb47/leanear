@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy } from "@leanear/ui/copy"
+import { Copy } from "@shipthat/ui/copy"
 import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useRef, useState } from "react"
 import {

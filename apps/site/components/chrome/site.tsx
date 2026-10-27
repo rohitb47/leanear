@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { GitHubIcon, Mark } from "@leanear/ui/mark"
+import { GitHubIcon, Mark } from "@shipthat/ui/mark"
 import { NavShell } from "./nav"
 import { APP, GITHUB, X } from "@/lib/site/links"
 
@@ -7,9 +7,9 @@ export function SiteNav({ count }: { count: number | null }) {
   return (
     <NavShell>
       <div className="wrap">
-        <Link className="wm" href="/#top" aria-label="Leanear">
+        <Link className="wm" href="/#top" aria-label="shipth.at">
           <Mark />
-          Leanear
+          shipth.at
         </Link>
         <nav className="links">
           <Link href="/#product">Product</Link>
@@ -43,9 +43,9 @@ export function SiteFoot() {
   return (
     <footer className="foot">
       <div className="wrap">
-        <Link className="wm" href="/" aria-label="Leanear">
+        <Link className="wm" href="/" aria-label="shipth.at">
           <Mark />
-          Leanear
+          shipth.at
         </Link>
         <nav>
           <a href={GITHUB} target="_blank" rel="noreferrer">
@@ -63,7 +63,7 @@ export function SiteFoot() {
             Licence
           </a>
         </nav>
-        <span className="mono">© 2026 Leanear</span>
+        <span className="mono">© 2026 shipth.at</span>
       </div>
     </footer>
   )

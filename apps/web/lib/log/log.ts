@@ -37,9 +37,9 @@ export const toEntry = (r: LogRow): LogEntry => ({
  *     await record(tx, c, {
  *       action: "task.deleted",
  *       kind: "task",
- *       subject: { id: t.id, label: "LEA-12" },
+ *       subject: { id: t.id, label: "SHI-12" },
  *       project: t.projectId,
- *       summary: `Deleted LEA-12 "Fix sign in"`,
+ *       summary: `Deleted SHI-12 "Fix sign in"`,
  *     })
  *
  * The sentence is frozen here, never rebuilt from `action` later: a line
@@ -61,7 +61,7 @@ export async function record(
     data: {
       workspaceId: c.ws,
       actorId: c.me?.id ?? null,
-      actorName: c.me?.name ?? c.by ?? "Leanear",
+      actorName: c.me?.name ?? c.by ?? "shipth.at",
       action: e.action,
       subjectType: e.kind,
       subjectId: e.subject.id ?? null,

@@ -4,9 +4,9 @@ import { Sidebar } from "@/components/docs/sidebar"
 import { stars } from "@/lib/site/links"
 
 export const metadata: Metadata = {
-  title: { template: "%s: Leanear docs", default: "Docs: Leanear" },
+  title: { template: "%s: shipth.at docs", default: "Docs: shipth.at" },
   description:
-    "Connect Claude Code, Cursor, Codex and more to Leanear over MCP. Every tool, every setting.",
+    "Connect Claude Code, Cursor, Codex and more to shipth.at over MCP. Every tool, every setting.",
 }
 
 export default async function DocsLayout({ children }: LayoutProps<"/docs">) {

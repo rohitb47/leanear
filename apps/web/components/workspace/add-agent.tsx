@@ -1,6 +1,6 @@
 "use client"
 
-import type { AgentKey } from "@leanear/ui/tiles"
+import type { AgentKey } from "@shipthat/ui/tiles"
 import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useState } from "react"
 import type { Member } from "@/lib/sync/types"

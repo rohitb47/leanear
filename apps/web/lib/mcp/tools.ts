@@ -24,7 +24,7 @@ import { LeanError } from "@/lib/utils"
 // The tools an agent gets over MCP. Each one calls the same lib/ functions the
 // app's procedures do, as the agent the key belongs to.
 
-export const INSTRUCTIONS = `Leanear is this team's single source of truth for what's happening in each product.
+export const INSTRUCTIONS = `shipth.at is this team's single source of truth for what's happening in each product.
 You are a member of the workspace. To work through your tasks:
 1. Call next_task. If there is none, say so and stop.
 2. move_task to "doing" when you start.

@@ -1,6 +1,6 @@
 "use client"
 
-import type { AgentKey } from "@leanear/ui/tiles"
+import type { AgentKey } from "@shipthat/ui/tiles"
 import { useRef, useState } from "react"
 import { liveMembers, toast, useData } from "@/lib/store/store"
 import { api } from "@/trpc/client"
@@ -133,7 +133,7 @@ export function SetupSteps({ projectKey }: { projectKey: string }) {
             onReveal={reveal}
           />
           <p>
-            Then start <b>claude</b> there and type <b>/leanear-setup</b>.
+            Then start <b>claude</b> there and type <b>/shipthat-setup</b>.
           </p>
         </>
       ) : (

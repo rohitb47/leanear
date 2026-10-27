@@ -1,18 +1,18 @@
-# Leanear: product spec
+# shipth.at: product spec
 
 Linear, but leaner. A project tool for a small team and its AI agents. This spec covers
-the app at **cloud.leanear.app** (`apps/web`) and, in §11, the site at **leanear.app**
+the app at **cloud.shipth.at** (`apps/web`) and, in §11, the site at **shipth.at**
 (`apps/site`).
 
 The first real customer is us: Rohit, one more person, and Claude Code, running the Provida
-(NDIS) product. Leanear is the single source of truth for what is happening in that product:
+(NDIS) product. shipth.at is the single source of truth for what is happening in that product:
 what's planned, who (or which agent) is on it, and what was done.
 
 ## 1. Principles
 
 1. **Five things, nothing else.** Projects, tasks, statuses, activity, agents. No cycles,
    estimates, epics, sub-tasks, custom fields, labels, priorities or due dates. A
-   project's rules live in its own repo (its `CLAUDE.md`), never in Leanear. Order in a column is the priority: drag a card
+   project's rules live in its own repo (its `CLAUDE.md`), never in shipth.at. Order in a column is the priority: drag a card
    higher to make it matter more.
 2. **Agents are members.** An agent has a name, a face and a key. It shows up in assignee
    menus and activity exactly like a person.
@@ -43,7 +43,7 @@ what's planned, who (or which agent) is on it, and what was done.
 The app is black like the site, edge to edge, with no framed panel around it. Cards,
 dialogs and menus on it are the one darker shade with a hairline.
 
-Two levels: the workspace, and a project in it. Leanear opens at Home, the workspace's.
+Two levels: the workspace, and a project in it. shipth.at opens at Home, the workspace's.
 The bar says where you are on the left (the workspace's name, or a project's name and
 key), with a menu to Home and every project. Its three tabs, with a pill that slides
 between them, are Home, Activity and Settings for the workspace, and Board, Activity and
@@ -60,7 +60,7 @@ buttons in a pinned footer, so the next step is never below the fold.
 
 ### 3.1 Sign in
 
-Mark, "Sign in to Leanear", Continue with GitHub (accent). That's the only way in; the
+Mark, "Sign in to shipth.at", Continue with GitHub (accent). That's the only way in; the
 first sign-in makes the account. An invite link (`/join/<token>`) shows the workspace
 being joined, and sign-in comes back to it. A full Cloud workspace says so.
 
@@ -100,7 +100,7 @@ its own card: id, type, assignee's face, title.
 - Columns scroll on their own; near an edge they scroll while dragging.
 - An agent in Doing has a quiet ring turning round its face.
 - What someone else just did shows for a few seconds as a line at the bottom ("Claude
-  picked up LEA-12"); click it to open the task.
+  picked up SHI-12"); click it to open the task.
 - An empty project offers New task and Bring a codebase.
 
 ### 3.5 Task
@@ -130,7 +130,7 @@ it at the top of its column.
 ### 3.7 Activity
 
 At Home, everything that happened in the workspace; in a project, only its lines. Newest first, grouped by day: each line the
-doer's face, the sentence written when it happened ("Moved LEA-12 to Done"), who and
+doer's face, the sentence written when it happened ("Moved SHI-12 to Done"), who and
 which project under it, and when. Filter by who and by kind (tasks, projects, people and
 agents, workspace). Clicking a line opens what it's about. Agents' lines
 look like everyone's.
@@ -169,7 +169,7 @@ get the same refusal over MCP. Past due still works while Stripe retries.
 
 ### 3.11 God mode
 
-For working on Leanear itself: resets and test data, in your face's menu. It exists
+For working on shipth.at itself: resets and test data, in your face's menu. It exists
 only under `next dev` on a local database (`lib/dev/god-mode.ts`); anywhere else the
 menu row is gone and every procedure is a 404. Fill a demo project, add or clear
 tasks, clear the activity, empty the trash, revoke keys never used, mark the
@@ -195,12 +195,12 @@ own changes are optimistic and reconciled with the server's reply.
 
 ## 5. MCP
 
-Endpoint: `https://cloud.leanear.app/mcp`. Streamable HTTP, stateless, JSON responses
+Endpoint: `https://cloud.shipth.at/mcp`. Streamable HTTP, stateless, JSON responses
 (protocol `2025-06-18`, older versions accepted). Auth: `Authorization: Bearer lk_…`.
 Requests are rate limited to 120 a minute per key.
 
 ```
-claude mcp add --scope user --transport http leanear https://cloud.leanear.app/mcp --header "Authorization: Bearer lk_…"
+claude mcp add --scope user --transport http shipthat https://cloud.shipth.at/mcp --header "Authorization: Bearer lk_…"
 ```
 
 | Tool            | Does                                                                     | Arguments                                                                |
@@ -215,7 +215,7 @@ claude mcp add --scope user --transport http leanear https://cloud.leanear.app/m
 | `comment`       | Post on a task                                                           | `id`, `body`                                                             |
 | `attach_image`  | Upload a base64 image; returns a Markdown link                           | `id`, `data`, `mime`                                                     |
 
-The loop: assign tasks to the agent, then tell it "Work through my Leanear tasks." It calls
+The loop: assign tasks to the agent, then tell it "Work through my shipth.at tasks." It calls
 `next_task`, moves the task to Doing, does the work (following the repo's own
 `CLAUDE.md`), comments what it did and how it checked it, and moves it to Done, or asks
 in a comment and hands it back to a person when it's blocked.
@@ -273,15 +273,15 @@ new task takes `min - 1` in its column and a drop takes the midpoint of its neig
 
 ## 9. Settings (environment)
 
-| Variable                       | Needed   | What                                                                                                           |
-| ------------------------------ | -------- | -------------------------------------------------------------------------------------------------------------- |
-| `DATABASE_URL`                 | Always   | Postgres connection string. Locally the Docker one; in production Neon's pooled string.                        |
-| `BETTER_AUTH_SECRET`           | Always   | 32+ random bytes (`openssl rand -base64 32`). Signs sessions.                                                  |
-| `PUBLIC_URL`                   | Always   | Where the app runs, like `https://cloud.leanear.app`. Better Auth's base URL and the MCP URL shown in the app. |
-| `GITHUB_ID`, `GITHUB_SECRET`   | Always   | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github`                                            |
-| `STRIPE_SECRET_KEY`            | Cloud    | Stripe secret or restricted key. Turns on the plan and the caps.                                               |
-| `STRIPE_WEBHOOK_SECRET`        | Cloud    | Signing secret of the webhook at `<PUBLIC_URL>/api/stripe`.                                                    |
-| `RESEND_API_KEY`, `EMAIL_FROM` | Optional | Resend, for invites by email. Without them invites are links to copy.                                          |
+| Variable                       | Needed   | What                                                                                                         |
+| ------------------------------ | -------- | ------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                 | Always   | Postgres connection string. Locally the Docker one; in production Neon's pooled string.                      |
+| `BETTER_AUTH_SECRET`           | Always   | 32+ random bytes (`openssl rand -base64 32`). Signs sessions.                                                |
+| `PUBLIC_URL`                   | Always   | Where the app runs, like `https://cloud.shipth.at`. Better Auth's base URL and the MCP URL shown in the app. |
+| `GITHUB_ID`, `GITHUB_SECRET`   | Always   | GitHub OAuth app. Callback: `<PUBLIC_URL>/api/auth/callback/github`                                          |
+| `STRIPE_SECRET_KEY`            | Cloud    | Stripe secret or restricted key. Turns on the plan and the caps.                                             |
+| `STRIPE_WEBHOOK_SECRET`        | Cloud    | Signing secret of the webhook at `<PUBLIC_URL>/api/stripe`.                                                  |
+| `RESEND_API_KEY`, `EMAIL_FROM` | Optional | Resend, for invites by email. Without them invites are links to copy.                                        |
 
 There are no migrations: `pnpm db:push` makes the database match `prisma/schema.prisma`.
 
@@ -291,7 +291,7 @@ Email beyond invites, sign-in other than GitHub, notifications, MCP OAuth sign-i
 ChatGPT and Gemini connectors wait; header-based clients work today), GitHub issue sync,
 mobile apps, public boards, file attachments other than images, a light theme.
 
-## 11. Site (leanear.app)
+## 11. Site (shipth.at)
 
 - **Hero:** pill, headline, one line, one button. The headline is two lines: "Project
   management for" dim, then one ink phrase that cycles (a small team, you and Claude, two

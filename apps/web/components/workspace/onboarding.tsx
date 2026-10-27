@@ -1,6 +1,6 @@
 "use client"
 
-import { Mark } from "@leanear/ui/mark"
+import { Mark } from "@shipthat/ui/mark"
 import { useState } from "react"
 import { keyFor } from "@/lib/projects/key"
 import { liveMembers, putProject, useData } from "@/lib/store/store"

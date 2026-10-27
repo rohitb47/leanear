@@ -1,5 +1,5 @@
 // The docs, in reading order. The sidebar groups them; the pager walks them.
-export const MCP = "https://cloud.leanear.app/mcp"
+export const MCP = "https://cloud.shipth.at/mcp"
 
 export type DocPage = { href: string; title: string; group: string }
 

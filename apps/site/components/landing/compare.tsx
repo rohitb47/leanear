@@ -1,5 +1,5 @@
-import { Mark } from "@leanear/ui/mark"
-import { AppTile, RIVALS } from "@leanear/ui/tiles"
+import { Mark } from "@shipthat/ui/mark"
+import { AppTile, RIVALS } from "@shipthat/ui/tiles"
 
 // Paid prices are each tool's cheapest paid plan, a person a month, billed
 // yearly. MCP means an official server from the tool's own team. Recheck both
@@ -68,12 +68,12 @@ function Value({ v, us }: { v: Cell; us?: boolean }) {
   )
 }
 
-// Leanear's column is a raised card over the table; the rest sit flat. Phones
+// shipth.at's column is a raised card over the table; the rest sit flat. Phones
 // keep Linear alone, so the table never scrolls sideways.
 export function Compare() {
   return (
     <div className="compare-scroll">
-      <div className="compare" role="table" aria-label="Leanear compared">
+      <div className="compare" role="table" aria-label="shipth.at compared">
         <span className="lift" aria-hidden />
         <div className="c-row c-head" role="row" style={{ gridRow: 1 }}>
           <span role="columnheader" />
@@ -81,7 +81,7 @@ export function Compare() {
             <span className="c-mark">
               <Mark size={36} />
             </span>
-            Leanear
+            shipth.at
           </span>
           {THEM.map((k, i) => (
             <span key={k} role="columnheader" className={i ? "c-more" : ""}>

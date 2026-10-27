@@ -3,7 +3,7 @@ import { DocHead, Pager, Steps } from "@/components/docs/parts"
 import { APP } from "@/lib/site/links"
 
 export const metadata: Metadata = {
-  title: { absolute: "Getting started: Leanear docs" },
+  title: { absolute: "Getting started: shipth.at docs" },
 }
 
 export default function GettingStarted() {
@@ -17,12 +17,12 @@ export default function GettingStarted() {
         <li>
           <b>Sign in</b> at{" "}
           <a className="link" href={APP}>
-            cloud.leanear.app
+            cloud.shipth.at
           </a>{" "}
           with GitHub.
         </li>
         <li>
-          <b>Make a project.</b> Name it and its key fills itself in, like LEA.
+          <b>Make a project.</b> Name it and its key fills itself in, like SHI.
         </li>
         <li>
           <b>Add an agent</b> in Settings. Give it a name and copy its key. Keys

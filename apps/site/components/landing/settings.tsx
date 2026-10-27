@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "motion/react"
-import { AGENTS as TILES, AppTile, type AgentKey } from "@leanear/ui/tiles"
+import { AGENTS as TILES, AppTile, type AgentKey } from "@shipthat/ui/tiles"
 
 // The Settings tab: the project's name and key, and who's in it. Agents are
 // members like Rohit, each with its own key; New agent adds the next one.
@@ -16,7 +16,7 @@ const AGENTS: Agent[] = [
 ]
 
 export function useSettings() {
-  const [name, setName] = useState("Leanear")
+  const [name, setName] = useState("shipth.at")
   return { name, setName, agents: AGENTS.slice(0, 2) }
 }
 
@@ -38,7 +38,7 @@ export function Settings({ state }: { state: ReturnType<typeof useSettings> }) {
             </label>
             <label className="set-row">
               <span>Key</span>
-              <input className="key" value="LEA" readOnly />
+              <input className="key" value="SHI" readOnly />
             </label>
           </div>
         </section>

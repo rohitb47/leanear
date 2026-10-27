@@ -1,6 +1,6 @@
 "use client"
 
-import { project as throwTo, set, spring } from "@leanear/ui/spring"
+import { project as throwTo, set, spring } from "@shipthat/ui/spring"
 import { AnimatePresence, motion } from "motion/react"
 import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import {

@@ -1,21 +1,21 @@
 ---
-name: leanear-setup
-description: Set up Leanear for an existing codebase. Use when the user asks to set up, bring, move or start Leanear for this repo, or to turn the codebase's TODOs and issues into Leanear tasks. Reads the code and creates the project's first tasks over the Leanear MCP server. Never changes code.
+name: shipthat-setup
+description: Set up shipth.at for an existing codebase. Use when the user asks to set up, bring, move or start shipth.at for this repo, or to turn the codebase's TODOs and issues into shipth.at tasks. Reads the code and creates the project's first tasks over the shipth.at MCP server. Never changes code.
 ---
 
-# Set up Leanear for this codebase
+# Set up shipth.at for this codebase
 
-You are setting up a Leanear project for the repository you're in. Leanear is
+You are setting up a shipth.at project for the repository you're in. shipth.at is
 a lean project tool: projects, tasks, statuses, activity and agents. You talk
-to it through the `leanear` MCP server.
+to it through the `shipthat` MCP server.
 
 ## Before you start
 
-1. Check the `leanear` MCP server is connected: its tools (`list_projects`
+1. Check the `shipthat` MCP server is connected: its tools (`list_projects`
    and the rest) are available to you. If they aren't, stop and tell the user,
-   in two lines: in Leanear, press ⌘K and pick **Bring a codebase**, and run
+   in two lines: in shipth.at, press ⌘K and pick **Bring a codebase**, and run
    the one line it makes in this folder; then start a new
-   Claude Code session here and run `/leanear-setup` again. A server added
+   Claude Code session here and run `/shipthat-setup` again. A server added
    mid-session doesn't load until the next one.
 2. Call `list_projects`. If the user named a project, use it. If there's
    exactly one, use it. Otherwise ask which one, and stop until they answer.

@@ -1,6 +1,6 @@
 "use client"
 
-import { GitHubIcon } from "@leanear/ui/mark"
+import { GitHubIcon } from "@shipthat/ui/mark"
 import { useState } from "react"
 import { authClient } from "@/lib/auth/client"
 import { Button } from "@/components/common/button"

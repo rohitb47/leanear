@@ -1,6 +1,6 @@
 # Self-host: put your settings in .env beside this file, then
 #   docker compose up -d
-# For working on Leanear itself, start only the database:
+# For working on shipth.at itself, start only the database:
 #   docker compose up -d db
 services:
   db:

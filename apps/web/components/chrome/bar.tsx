@@ -1,6 +1,6 @@
 "use client"
 
-import { Mark } from "@leanear/ui/mark"
+import { Mark } from "@shipthat/ui/mark"
 import { motion } from "motion/react"
 import { useState } from "react"
 import { authClient } from "@/lib/auth/client"
@@ -194,7 +194,7 @@ export function Bar() {
             God mode
           </button>
         )}
-        <a href="https://leanear.app/docs" target="_blank" rel="noreferrer">
+        <a href="https://shipth.at/docs" target="_blank" rel="noreferrer">
           Docs
         </a>
         <button

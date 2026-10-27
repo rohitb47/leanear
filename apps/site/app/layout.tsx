@@ -21,7 +21,7 @@ const sign = Mrs_Saint_Delafield({
   subsets: ["latin"],
 })
 
-const title = "Leanear: Linear, but leaner"
+const title = "shipth.at: Linear, but leaner"
 const description =
   "One board for a small team and all its agents. Open source, $9 for the whole team, or run it yourself."
 
@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     title,
     description,
     url: URL,
-    siteName: "Leanear",
+    siteName: "shipth.at",
     type: "website",
   },
   twitter: {

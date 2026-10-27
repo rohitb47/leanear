@@ -1,6 +1,6 @@
 import { Logo, type LogoKey } from "./logos"
 
-// App-icon tiles for the agents that work with Leanear, in their own colours.
+// App-icon tiles for the agents that work with shipth.at, in their own colours.
 type Tile = {
   name: string
   bg: string

@@ -1,5 +1,5 @@
-# Leanear, self-hosted: the app in one container. docker-compose.yml runs it
-# beside Postgres. See leanear.app/docs/self-host.
+# shipth.at, self-hosted: the app in one container. docker-compose.yml runs it
+# beside Postgres. See shipth.at/docs/self-host.
 FROM node:22-alpine
 RUN corepack enable
 WORKDIR /app
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . .
 RUN pnpm install --frozen-lockfile
 # Building needs no real settings; the container gets them when it starts.
-RUN BETTER_AUTH_SECRET=build pnpm --filter @leanear/web build
+RUN BETTER_AUTH_SECRET=build pnpm --filter @shipthat/web build
 
 ENV NODE_ENV=production
 EXPOSE 3000

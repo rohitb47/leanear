@@ -3,11 +3,11 @@ import { Code, DocHead, Pager, Steps } from "@/components/docs/parts"
 
 export const metadata: Metadata = { title: "Bring a codebase" }
 
-const INSTALL = `mkdir -p .claude/skills/leanear-setup
-curl -fsSL https://raw.githubusercontent.com/rohitb47/leanear/main/skills/leanear-setup/SKILL.md \\
-  -o .claude/skills/leanear-setup/SKILL.md`
+const INSTALL = `mkdir -p .claude/skills/shipthat-setup
+curl -fsSL https://raw.githubusercontent.com/rohitb47/leanear/main/skills/shipthat-setup/SKILL.md \\
+  -o .claude/skills/shipthat-setup/SKILL.md`
 
-const PROMPT = `Set up Leanear for this codebase, in my Leanear project.
+const PROMPT = `Set up shipth.at for this codebase, in my shipth.at project.
 1. Read the repo: README, build files, folder layout, its own CLAUDE.md and AGENTS.md, and docs.
 2. Turn TODO, FIXME and HACK comments, open GitHub issues and any roadmap into tasks with create_task: a short title, a type, and where it came from. Check list_tasks first so nothing is duplicated. About 30 at most.
 3. Move the five that matter most to Todo and say why in a comment.
@@ -40,8 +40,8 @@ export default function Setup() {
       </p>
       <Code code={INSTALL} file="Terminal" />
       <p>
-        Then type <code className="inline">/leanear-setup</code>, or just ask
-        Claude Code to set up Leanear for this codebase.
+        Then type <code className="inline">/shipthat-setup</code>, or just ask
+        Claude Code to set up shipth.at for this codebase.
       </p>
 
       <h2>With any other agent</h2>

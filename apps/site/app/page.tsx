@@ -1,15 +1,15 @@
 import Link from "next/link"
 import { Board } from "@/components/landing/board"
-import { Copy } from "@leanear/ui/copy"
+import { Copy } from "@shipthat/ui/copy"
 import { Compare } from "@/components/landing/compare"
 import { DotField } from "@/components/landing/dot-field"
 import { Faq } from "@/components/landing/faq"
 import { HeroWords } from "@/components/landing/hero-words"
-import { Logo } from "@leanear/ui/logos"
-import { Mark } from "@leanear/ui/mark"
+import { Logo } from "@shipthat/ui/logos"
+import { Mark } from "@shipthat/ui/mark"
 import { SiteFoot, SiteNav } from "@/components/chrome/site"
 import { Reveal } from "@/components/common/reveal"
-import { AGENTS, AppTile } from "@leanear/ui/tiles"
+import { AGENTS, AppTile } from "@shipthat/ui/tiles"
 import { APP, X, stars } from "@/lib/site/links"
 
 // Each card's drawing has a quiet idle loop that acts out its sentence. The
@@ -17,14 +17,14 @@ import { APP, X, stars } from "@/lib/site/links"
 const FIVE = [
   {
     title: "Projects",
-    text: "One per product. A name and a short key that starts every task id, like LEA-12.",
+    text: "One per product. A name and a short key that starts every task id, like SHI-12.",
     art: (
       <div className="idle idle-projects">
         <span className="chip">
           <span className="cid">DEC</span> Déclic
         </span>
         <span className="chip">
-          <span className="cid">LEA</span> Leanear
+          <span className="cid">SHI</span> shipth.at
         </span>
       </div>
     ),
@@ -35,12 +35,12 @@ const FIVE = [
     art: (
       <div className="idle idle-tasks">
         <span className="chip">
-          <span className="cid">LEA-12</span>
+          <span className="cid">SHI-12</span>
           <span className="type">Bug</span>
           Login loops on Safari
         </span>
         <span className="chip">
-          <span className="cid">LEA-14</span>
+          <span className="cid">SHI-14</span>
           <span className="type">Feature</span>
           Drag to reorder
         </span>
@@ -71,9 +71,9 @@ const FIVE = [
           </span>{" "}
           Claude moved
           <span className="ids">
-            <span className="cid">LEA-9</span>
-            <span className="cid">LEA-12</span>
-            <span className="cid">LEA-14</span>
+            <span className="cid">SHI-9</span>
+            <span className="cid">SHI-12</span>
+            <span className="cid">SHI-14</span>
           </span>
           to Done
         </span>
@@ -101,7 +101,7 @@ const FIVE = [
 ]
 
 const MCP =
-  'claude mcp add --transport http leanear https://cloud.leanear.app/mcp --header "Authorization: Bearer lk_your_key"'
+  'claude mcp add --transport http shipthat https://cloud.shipth.at/mcp --header "Authorization: Bearer lk_your_key"'
 
 const CUT = [
   "Teams",
@@ -416,7 +416,7 @@ export default async function Home() {
                 Hello from the{" "}
                 <span className="stamp">
                   <Mark />
-                  Leanear
+                  shipth.at
                 </span>{" "}
                 team
               </h2>
@@ -439,7 +439,7 @@ export default async function Home() {
                 modules.
               </p>
               <p>
-                So I built Leanear. One board for us and our agents. Nothing
+                So I built shipth.at. One board for us and our agents. Nothing
                 else.
               </p>
               <div className="sig">

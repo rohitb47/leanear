@@ -1,6 +1,6 @@
 ---
 version: alpha
-name: Leanear
+name: shipth.at
 description: Dark, calm and spacious. One board for a small team and its agents.
 colors:
   primary: "#ededed"
@@ -93,7 +93,7 @@ components:
     rounded: "{rounded.xl}"
 ---
 
-# Leanear
+# shipth.at
 
 ## Overview
 
@@ -130,7 +130,7 @@ edge to edge, with the demo's bar, tabs and cards on it: no framed window around
 - **Bricolage Grotesque** for headings, at 520. **Geist** for body, at 400 and
   480 for emphasis. Nothing heavier than 520. Hanken Grotesk was tried for
   headings and rejected.
-- **Geist Mono** for ids (`LEA-12`), commands, keys and small labels.
+- **Geist Mono** for ids (`SHI-12`), commands, keys and small labels.
 - **Mrs Saint Delafield** only for Rohit's signature.
 - Headlines are two lines, tapering: the first line or the connector words
   `pale`, the line that matters in ink. On phones the display size drops to 40px
@@ -144,7 +144,7 @@ Section heads are centred, at most 720px wide.
 
 ## Elevation & Depth
 
-Depth is the surface steps. A raised card (the main plan, the Leanear column) is
+Depth is the surface steps. A raised card (the main plan, the shipth.at column) is
 `card` with a soft shadow. The site's product window gets the one deep shadow on
 the page. In the app everything placed on black (cards, settings rows, dialogs,
 menus) is `paper` with a hairline; fields and secondary buttons are the soft tint.

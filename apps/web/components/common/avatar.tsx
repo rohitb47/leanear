@@ -1,7 +1,7 @@
 "use client"
 
-import { Logo, type LogoKey } from "@leanear/ui/logos"
-import { AGENTS, type AgentKey } from "@leanear/ui/tiles"
+import { Logo, type LogoKey } from "@shipthat/ui/logos"
+import { AGENTS, type AgentKey } from "@shipthat/ui/tiles"
 import type { Member, Status } from "@/lib/sync/types"
 
 /** Tools with a mark of their own; the rest wear their initials. */

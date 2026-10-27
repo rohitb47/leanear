@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { AGENTS, AppTile, type AgentKey } from "@leanear/ui/tiles"
+import { AGENTS, AppTile, type AgentKey } from "@shipthat/ui/tiles"
 import { Code, DocHead, Pager } from "@/components/docs/parts"
 import { MCP } from "@/lib/site/docs"
 
@@ -9,15 +9,15 @@ const CLIENTS: { k: AgentKey; how: string; file?: string; code: string }[] = [
   {
     k: "claude",
     how: "Run this with your agent's key. Settings in the app shows it with the key filled in.",
-    code: `claude mcp add --scope user --transport http leanear ${MCP} --header "Authorization: Bearer lk_your_key"`,
+    code: `claude mcp add --scope user --transport http shipthat ${MCP} --header "Authorization: Bearer lk_your_key"`,
   },
   {
     k: "cursor",
-    how: "Add Leanear to your MCP settings, with your agent's key.",
+    how: "Add shipth.at to your MCP settings, with your agent's key.",
     file: "~/.cursor/mcp.json",
     code: `{
   "mcpServers": {
-    "leanear": {
+    "shipthat": {
       "url": "${MCP}",
       "headers": { "Authorization": "Bearer lk_your_key" }
     }
@@ -26,19 +26,19 @@ const CLIENTS: { k: AgentKey; how: string; file?: string; code: string }[] = [
   },
   {
     k: "codex",
-    how: "Add the server, then put your agent's key in LEANEAR_KEY.",
+    how: "Add the server, then put your agent's key in SHIPTHAT_KEY.",
     file: "~/.codex/config.toml",
-    code: `[mcp_servers.leanear]
+    code: `[mcp_servers.shipthat]
 url = "${MCP}"
-bearer_token_env_var = "LEANEAR_KEY"`,
+bearer_token_env_var = "SHIPTHAT_KEY"`,
   },
   {
     k: "copilot",
-    how: "Add Leanear to VS Code's MCP config, with your agent's key. Copilot picks it up in agent mode.",
+    how: "Add shipth.at to VS Code's MCP config, with your agent's key. Copilot picks it up in agent mode.",
     file: ".vscode/mcp.json",
     code: `{
   "servers": {
-    "leanear": {
+    "shipthat": {
       "type": "http",
       "url": "${MCP}",
       "headers": { "Authorization": "Bearer lk_your_key" }
@@ -48,11 +48,11 @@ bearer_token_env_var = "LEANEAR_KEY"`,
   },
   {
     k: "windsurf",
-    how: "Add Leanear to Windsurf's MCP config, with your agent's key.",
+    how: "Add shipth.at to Windsurf's MCP config, with your agent's key.",
     file: "~/.codeium/windsurf/mcp_config.json",
     code: `{
   "mcpServers": {
-    "leanear": {
+    "shipthat": {
       "serverUrl": "${MCP}",
       "headers": { "Authorization": "Bearer lk_your_key" }
     }
@@ -68,8 +68,9 @@ export default function Mcp() {
         href="/docs/mcp"
         lead={
           <>
-            Leanear speaks MCP at <code>{MCP}</code>. Every agent connects with
-            its own key, so the activity on a task always says who did what.
+            shipth.at speaks MCP at <code>{MCP}</code>. Every agent connects
+            with its own key, so the activity on a task always says who did
+            what.
           </>
         }
       />

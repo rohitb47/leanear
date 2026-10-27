@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy } from "@leanear/ui/copy"
+import { Copy } from "@shipthat/ui/copy"
 import { useCallback, useEffect, useState } from "react"
 import type { Member, SettingsData } from "@/lib/sync/types"
 import { authClient } from "@/lib/auth/client"
@@ -557,7 +557,7 @@ function PlanSection() {
       <div className="set-card">
         <div className="set-row">
           <div className="who">
-            <div>Leanear Cloud, ${b.cents / 100} a month</div>
+            <div>shipth.at Cloud, ${b.cents / 100} a month</div>
             <div className="sub">
               {b.status === "past_due"
                 ? "The last payment didn't go through. Stripe will try again."
